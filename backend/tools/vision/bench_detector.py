@@ -31,7 +31,7 @@ from crowdcast.common.config import REPO_ROOT
 from crowdcast.common.time import utc_now
 from crowdcast.vision.interfaces import PersonDetector
 from crowdcast.vision.tiling import TiledDetector
-from crowdcast.vision.yolox_onnx import Preprocessing, YoloxOnnxDetector
+from crowdcast.vision.yolox_onnx import Device, Preprocessing, YoloxOnnxDetector
 from tools.vision.fetch_models import MODEL_DIR, load_manifest, sha256_of
 
 WARMUP = 3
@@ -90,12 +90,14 @@ def bench_model(
     preprocessing: Preprocessing,
     threads: int | None,
     tile_overlap: float | None = None,
+    device: Device = "cpu",
 ) -> ModelResult:
     base = YoloxOnnxDetector(
         MODEL_DIR / f"{name}.onnx",
         preprocessing=preprocessing,
         score_threshold=COUNT_SCORE,
         intra_op_threads=threads,
+        device=device,
     )
     cap = cv2.VideoCapture(str(video))
     if not cap.isOpened():
@@ -163,6 +165,7 @@ def main(argv: list[str] | None = None) -> int:
         help="also benchmark tiled detection (tiles = model input size, plus a full-frame pass)",
     )
     parser.add_argument("--tile-overlap", type=float, default=0.2)
+    parser.add_argument("--device", choices=["cpu", "dml"], default="cpu")
     parser.add_argument("--task", default="1.4.2", help="WORKFLOW task id recorded in the run")
     parser.add_argument("--out", type=Path, default=REPO_ROOT / "runs" / "bench")
     args = parser.parse_args(argv)
@@ -190,6 +193,7 @@ def main(argv: list[str] | None = None) -> int:
         "warmup_frames": WARMUP,
         "ort_intra_op_threads": args.threads or "default",
         "tile_overlap": args.tile_overlap if args.tiled else None,
+        "device": args.device,
         "model_sha256": {m: manifest["models"][m]["sha256"] for m in args.models},
     }
     environment = {
@@ -197,6 +201,7 @@ def main(argv: list[str] | None = None) -> int:
         "processor": platform.processor(),
         "python": platform.python_version(),
         "onnxruntime": ort.__version__,
+        "onnxruntime_providers_available": ort.get_available_providers(),
         "opencv": cv2.__version__,
         "numpy": np.__version__,
         "git_commit": git_commit(),
@@ -210,7 +215,9 @@ def main(argv: list[str] | None = None) -> int:
     results = []
     for name in args.models:
         for overlap in variants:
-            r = bench_model(name, args.video, step, preprocessing, args.threads, overlap)
+            r = bench_model(
+                name, args.video, step, preprocessing, args.threads, overlap, args.device
+            )
             results.append(r)
             label = r.model + ("+tiles" if r.tiled else "")
             print(

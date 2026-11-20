@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
+from typing import Literal
 
 import cv2
 import numpy as np
@@ -31,6 +32,15 @@ PAD_VALUE = 114
 PERSON_CLASS_ID = 0  # COCO class index of "person"
 IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], np.float32)
 IMAGENET_STD = np.array([0.229, 0.224, 0.225], np.float32)
+
+
+# Where the network runs. "cpu" is the default and the reference for every reported number;
+# "dml" = DirectML on the integrated GPU (Windows, onnxruntime-directml package; experimental).
+Device = Literal["cpu", "dml"]
+PROVIDERS: dict[str, list[str]] = {
+    "cpu": ["CPUExecutionProvider"],
+    "dml": ["DmlExecutionProvider", "CPUExecutionProvider"],
+}
 
 
 class Preprocessing(StrEnum):
@@ -143,13 +153,24 @@ class YoloxOnnxDetector:
         score_threshold: float = 0.1,
         nms_iou: float = 0.45,
         intra_op_threads: int | None = None,
+        device: Device = "cpu",
     ) -> None:
         options = ort.SessionOptions()
         if intra_op_threads is not None:
             options.intra_op_num_threads = intra_op_threads
+        if device == "dml":
+            # DirectML (iGPU) needs these two settings per the ONNX Runtime DirectML docs.
+            options.enable_mem_pattern = False
+            options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
         self._session = ort.InferenceSession(
-            str(model_path), sess_options=options, providers=["CPUExecutionProvider"]
+            str(model_path), sess_options=options, providers=PROVIDERS[device]
         )
+        # What actually runs (ORT silently falls back to CPU if DirectML is unavailable).
+        self.providers: list[str] = list(self._session.get_providers())
+        if device == "dml" and "DmlExecutionProvider" not in self.providers:
+            raise RuntimeError(
+                "DirectML requested but not available (needs the onnxruntime-directml package)"
+            )
         model_input = self._session.get_inputs()[0]
         _, _, in_h, in_w = model_input.shape
         if not (isinstance(in_h, int) and isinstance(in_w, int)):

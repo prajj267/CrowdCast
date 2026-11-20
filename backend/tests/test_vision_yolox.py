@@ -155,3 +155,16 @@ def test_real_model_reads_fixed_input_size_and_finds_no_person_in_blank_frame(
     blank = np.full((480, 640, 3), 128, np.uint8)
     as_protocol: PersonDetector = detector
     assert len(as_protocol.detect(blank)) == 0
+
+
+@pytest.mark.model
+def test_default_device_is_cpu_and_missing_directml_is_reported() -> None:
+    import onnxruntime as ort
+
+    path = _model_path("yolox_nano")
+    prep = Preprocessing(load_manifest()["preprocessing"])
+    assert YoloxOnnxDetector(path, preprocessing=prep).providers == ["CPUExecutionProvider"]
+    if "DmlExecutionProvider" in ort.get_available_providers():
+        pytest.skip("DirectML is installed in this environment")
+    with pytest.raises(RuntimeError, match="DirectML requested but not available"):
+        YoloxOnnxDetector(path, preprocessing=prep, device="dml")
