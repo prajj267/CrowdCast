@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 2 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 2.1.3 (schedule format + example V1 schedule)
+**Next task:** 2.2.1 (graph construction + validation rules, doc 11 §9)
 
 ---
 
@@ -129,7 +129,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ### 2.1 Configuration formats
 - [x] 2.1.1 Venue YAML schema (zones: code, type, area, capacity, polygon; connections: from, to, width, travel time, bidirectional), per [12 §6](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md)
 - [x] 2.1.2 `configs/venues/v1.yaml` from [11 §6](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md) (illustrative values, labelled as such)
-- [ ] 2.1.3 Schedule YAML/CSV format and one example event schedule for V1
+- [x] 2.1.3 Schedule YAML/CSV format and one example event schedule for V1
 
 ### 2.2 Venue graph module (M5)
 - [ ] 2.2.1 Graph construction and the validation rules in [11 §9](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md)
@@ -332,6 +332,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 2.1.3 | Event + published-schedule YAML v1 (`venue_graph/event_config.py`) + 12 tests; `configs/events/v1_spring_fest_day1.yaml` (9 items; headline band from doc 13, rest `[new]`, illustrative); doc 12 → v0.3 (§6.2, contract change) | YAML only (doc allowed YAML or CSV). Rule added: items must lie inside the event window. Event + venue formats both live in M5 | 2.2.1 |
 | 2026-11-20 | 2.1.2 | `configs/venues/v1.yaml`: 8 zones, 10 connections (19 directed edges) from doc 11 §6, test that it matches the doc 11 table | Docs give areas/capacities/graph and 3 polygons + 1 edge; 5 polygons and 9 widths/travel times invented and tagged `[new]` (illustrative placeholders) | 2.1.3 |
 | 2026-11-20 | 2.1.1 | Venue YAML format v1 as Pydantic models (`crowdcast/venue_graph/config.py`, `interfaces.py`) + 26 tests; doc 12 → v0.2 (§6.1 format spec, contract change); `shapely` added (BSD-3-Clause) for polygon validity | Entry/exit flags derived from OUTSIDE connections; `illustrative` flag required in every venue file. GitHub contributor sidebar still showed Claude after the rewrite: API shows only prajj267, so it is GitHub's cache | 2.1.2 |
 | 2026-11-20 | 1.4.3, repo | `TiledDetector` + 7 tests; benchmark `--tiled`, prints live; run bench-20261120T134304Z logged; provisional choice YOLOX-s + tiles @ 5 FPS (deviation logged). Git history rewritten to remove AI co-author trailers (messages only; IDs in logs updated) and force-pushed | MS1 reached. Model choice provisional until MOT20 accuracy (7.1); doc 09 still describes YOLO11 and no tiling (fold into 0.3.x doc updates) | 2.1.1 |

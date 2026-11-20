@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Proposed; no data collected yet |
 
 ---
@@ -141,7 +141,7 @@ Each event 4–8 h, randomised schedule (number, timing, category of items), att
 | Artefact | Format |
 |---|---|
 | Observations export | Parquet / CSV: `event_id, zone_code, bucket_start, occupancy, inflow, outflow, mean_speed_mps, quality, data_origin` |
-| Schedule | YAML or CSV: `title, category, zone_code, start, end, expected_attendance, attraction_weight` |
+| Event + published schedule | YAML, format version 1 — specified in §6.2 (CSV variant not implemented; YAML covers the same fields) |
 | Venue | YAML, format version 1 — specified in §6.1 |
 | Annotation import | CSV: `zone_code, minute (ISO 8601), count[, inflow, outflow]` |
 | Training dataset | Parquet with feature columns, target columns per horizon, `event_id`, `split`, `data_origin` |
@@ -189,6 +189,32 @@ Rules checked when the file is loaded:
 
 **Entry/exit flags are derived, not written:** a zone is an entry if a directed edge OUTSIDE→zone exists, and an exit if zone→OUTSIDE exists; these fill `zones.is_entry` / `is_exit`. Whole-graph rules (degree, reachability from and to ω, 11 §9) are checked by the graph module, not by the file parser.
 
+### 6.2 Event and published-schedule YAML (format version 1)
+
+Implemented and validated by `backend/crowdcast/venue_graph/event_config.py`. Files live in `configs/events/`; one file = one event at one venue. The schedule in this file is the **published** schedule — the only schedule that may be used as forecasting features. Realised times (CROWDSIM perturbations, operator corrections) are analysis-only ([10 §7](10_ML_FORECASTING_METHODOLOGY.md), §5.1 step 7).
+
+```yaml
+format_version: 1                  # required; only 1 is accepted
+illustrative: true                 # required; true = made-up event
+event:
+  name: Spring Fest 2027 - Day 1
+  venue: v1                        # stem of a file in configs/venues/
+  start_time: 2027-03-12T10:30:00Z # ISO 8601 WITH time zone; converted to UTC; naive times rejected
+  end_time: 2027-03-12T17:30:00Z   # after start_time; duration ≤ 24 h (14 §3.2)
+  expected_attendance: 5000        # optional, ≥ 0
+  is_synthetic: true               # default false
+schedule:
+  - title: Headline band
+    category: PERFORMANCE          # PERFORMANCE | MEAL | ENTRY_OPEN | EXIT_WAVE | ANNOUNCEMENT | OTHER
+    zone: MS                       # zone code of the event's venue; omit/null = venue-wide
+    start: 2027-03-12T14:00:00Z    # with time zone; end after start; inside the event window
+    end: 2027-03-12T15:00:00Z
+    expected_attendance: 2500      # optional, ≥ 0
+    attraction_weight: 0.95        # 0–1, at most 2 decimals (DB numeric(3,2)); default 0.5
+```
+
+Errors: unknown keys; naive times; event or item ending before it starts; event longer than 24 h; item outside the event window; attendance < 0; weight outside 0–1 or with more than 2 decimals; a `zone` not present in the venue file (checked when the event is matched to its venue).
+
 ## 7. Data labelling summary
 
 | Label | Meaning | Allowed uses |
@@ -201,4 +227,5 @@ Rules checked when the file is loaded:
 
 | Version | Date | Change |
 |---|---|---|
+| 0.3 | 2026-11-20 | §6.2 added: event + published-schedule YAML format v1 (UTC conversion, event-window and venue-zone checks) — WORKFLOW 2.1.3 |
 | 0.2 | 2026-11-20 | §6.1 added: full venue YAML format v1 (`format_version`, `illustrative` flag, field limits, derived entry/exit flags, load-time rules) — WORKFLOW 2.1.1 |

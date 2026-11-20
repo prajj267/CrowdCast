@@ -1,0 +1,42 @@
+# Example event at reference venue V1 with its PUBLISHED schedule (format: doc 12 §6.2).
+#
+# ILLUSTRATIVE VALUES ONLY - a made-up festival day for design, CROWDSIM and the demo.
+# Provenance: [13] = doc 13 §6 example records; [new] = invented for this file (task 2.1.3).
+# Times are UTC ("Z"). Items without a zone are venue-wide.
+format_version: 1
+illustrative: true
+
+event:
+  name: "Spring Fest 2027 - Day 1"     # [13]
+  venue: v1                            # configs/venues/v1.yaml
+  start_time: 2027-03-12T10:30:00Z     # [13]
+  end_time: 2027-03-12T17:30:00Z       # [13]
+  expected_attendance: 5000            # [13]
+  is_synthetic: true                   # planned to be simulated by CROWDSIM
+
+schedule:
+  - {title: Gates open, category: ENTRY_OPEN,
+     start: 2027-03-12T10:30:00Z, end: 2027-03-12T11:30:00Z, attraction_weight: 0.5}           # [new]
+  - {title: Opening ceremony, category: PERFORMANCE, zone: MS,
+     start: 2027-03-12T11:00:00Z, end: 2027-03-12T11:30:00Z,
+     expected_attendance: 1500, attraction_weight: 0.7}                                        # [new]
+  - {title: Project exhibition, category: OTHER, zone: EX,
+     start: 2027-03-12T11:00:00Z, end: 2027-03-12T16:00:00Z,
+     expected_attendance: 800, attraction_weight: 0.4}                                         # [new]
+  - {title: Lunch, category: MEAL, zone: FC,
+     start: 2027-03-12T12:30:00Z, end: 2027-03-12T14:00:00Z,
+     expected_attendance: 1500, attraction_weight: 0.8}                                        # [new]
+  - {title: Student band showcase, category: PERFORMANCE, zone: MS,
+     start: 2027-03-12T12:00:00Z, end: 2027-03-12T13:00:00Z,
+     expected_attendance: 1200, attraction_weight: 0.6}                                        # [new]
+  - {title: Headline band, category: PERFORMANCE, zone: MS,
+     start: 2027-03-12T14:00:00Z, end: 2027-03-12T15:00:00Z,
+     expected_attendance: 2500, attraction_weight: 0.95}                                       # [13]
+  - {title: Prize announcement, category: ANNOUNCEMENT, zone: MS,
+     start: 2027-03-12T16:00:00Z, end: 2027-03-12T16:20:00Z,
+     expected_attendance: 1800, attraction_weight: 0.7}                                        # [new]
+  - {title: Evening snacks, category: MEAL, zone: FC,
+     start: 2027-03-12T15:30:00Z, end: 2027-03-12T16:30:00Z,
+     expected_attendance: 900, attraction_weight: 0.5}                                         # [new]
+  - {title: Close and exit, category: EXIT_WAVE,
+     start: 2027-03-12T17:00:00Z, end: 2027-03-12T17:30:00Z, attraction_weight: 0.5}           # [new]
