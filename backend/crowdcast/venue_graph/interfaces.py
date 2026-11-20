@@ -19,6 +19,13 @@ from crowdcast.venue_graph.event_config import (
     ScheduleItem,
     load_event_config,
 )
+from crowdcast.venue_graph.graph import (
+    GraphIssue,
+    InvalidVenueGraphError,
+    IssueCode,
+    Severity,
+    VenueGraph,
+)
 
 __all__ = [
     "FORMAT_VERSION",
@@ -26,9 +33,14 @@ __all__ = [
     "ConnectionConfig",
     "EventConfig",
     "EventInfo",
+    "GraphIssue",
+    "InvalidVenueGraphError",
+    "IssueCode",
     "ScheduleItem",
+    "Severity",
     "Thresholds",
     "VenueConfig",
+    "VenueGraph",
     "VenueInfo",
     "ZoneConfig",
     "load_event_config",

@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 2 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 2.2.1 (graph construction + validation rules, doc 11 §9)
+**Next task:** 2.3.1 (CLI: load venue + event YAML into the database)
 
 ---
 
@@ -132,9 +132,9 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 2.1.3 Schedule YAML/CSV format and one example event schedule for V1
 
 ### 2.2 Venue graph module (M5)
-- [ ] 2.2.1 Graph construction and the validation rules in [11 §9](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md)
-- [ ] 2.2.2 Adjacency matrices and shortest-path travel times ([11 §5.3](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md))
-- [ ] 2.2.3 Unit tests from [17 §2.2](DOCUMENTATION/17_TESTING_STRATEGY.md)
+- [x] 2.2.1 Graph construction and the validation rules in [11 §9](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md)
+- [x] 2.2.2 Adjacency matrices and shortest-path travel times ([11 §5.3](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md))
+- [x] 2.2.3 Unit tests from [17 §2.2](DOCUMENTATION/17_TESTING_STRATEGY.md) (TC-GR-01–03 done; TC-GR-04 needs simulator output → done with CROWDSIM in Phase 3)
 
 ### 2.3 Loading and API skeleton (T2.1, T2.2, T2.5)
 - [ ] 2.3.1 CLI: load venue YAML and event + schedule YAML into the database
@@ -332,6 +332,8 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 2.2.2, 2.2.3 | `VenueGraph.adjacency()` (binary + width-weighted, zones only, rows = from), `shortest_path()` / `travel_time_s()` (Dijkstra on τ), `travel_time_matrix()` for CROWDSIM; 5 tests incl. TC-GR-03 (V1 matrix built by hand) | OUTSIDE allowed only as route start/end, never as a shortcut between gates. Normalised Â (GNN extension) and Π̄ (estimated from data) not built. TC-GR-04 deferred to CROWDSIM | 2.3.1 |
+| 2026-11-20 | 2.2.1 | `venue_graph/graph.py`: `VenueGraph` (networkx DiGraph incl. OUTSIDE, keyed by zone code), `validate()` → ISOLATED / UNREACHABLE / NO_PATH_OUT errors + NO_COUNTING_LINE warnings, `require_valid()`; 9 tests incl. TC-GR-01/02; V1 validates clean; `networkx` added (BSD-3-Clause, named in doc 07) | Rule 3 (w, τ > 0) enforced at YAML parse. Rule 4 skipped until camera config exists (would otherwise warn on every edge). Isolated zones reported once, not also as unreachable | 2.2.2 |
 | 2026-11-20 | 2.1.3 | Event + published-schedule YAML v1 (`venue_graph/event_config.py`) + 12 tests; `configs/events/v1_spring_fest_day1.yaml` (9 items; headline band from doc 13, rest `[new]`, illustrative); doc 12 → v0.3 (§6.2, contract change) | YAML only (doc allowed YAML or CSV). Rule added: items must lie inside the event window. Event + venue formats both live in M5 | 2.2.1 |
 | 2026-11-20 | 2.1.2 | `configs/venues/v1.yaml`: 8 zones, 10 connections (19 directed edges) from doc 11 §6, test that it matches the doc 11 table | Docs give areas/capacities/graph and 3 polygons + 1 edge; 5 polygons and 9 widths/travel times invented and tagged `[new]` (illustrative placeholders) | 2.1.3 |
 | 2026-11-20 | 2.1.1 | Venue YAML format v1 as Pydantic models (`crowdcast/venue_graph/config.py`, `interfaces.py`) + 26 tests; doc 12 → v0.2 (§6.1 format spec, contract change); `shapely` added (BSD-3-Clause) for polygon validity | Entry/exit flags derived from OUTSIDE connections; `illustrative` flag required in every venue file. GitHub contributor sidebar still showed Claude after the rewrite: API shows only prajj267, so it is GitHub's cache | 2.1.2 |
