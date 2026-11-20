@@ -1,0 +1,131 @@
+# 16 — Model Evaluation
+
+| Field | Value |
+|---|---|
+| Version | 0.1 |
+| Status | Evaluation **plan**. No results are reported here; tables are templates filled only by the pipeline |
+
+---
+
+## 1. Principles
+
+1. Every metric answers an objective (O1–O8, [02](02_OBJECTIVES_AND_SCOPE.md)).
+2. Every learned model is compared with simple baselines at every horizon.
+3. Results are reported **separately** for synthetic-clean, synthetic-noisy and real data.
+4. Test sets are used once per final configuration; tuning happens only on training/validation events.
+5. Metric uncertainty is reported (bootstrap over events, 95 % CI).
+
+## 2. Computer vision evaluation
+
+### 2.1 Counting
+
+For annotated samples $k = 1..K$ with true count $y_k$ and estimate $\hat y_k$:
+
+$$
+\text{MAE} = \frac1K\sum_k |\hat y_k - y_k|,\qquad
+\text{RMSE} = \sqrt{\frac1K\sum_k (\hat y_k - y_k)^2},\qquad
+\text{Bias} = \frac1K\sum_k (\hat y_k - y_k)
+$$
+
+Bias is reported because detectors are expected to **undercount** in dense scenes; MAE alone hides the direction.
+
+**By density level** (true density in the region):
+
+| Band | Persons/m² | Report |
+|---|---|---|
+| D1 sparse | < 0.5 | MAE, RMSE, Bias, relative MAE $\sum|\hat y - y| / \sum y$ |
+| D2 moderate | 0.5–1.5 | same |
+| D3 dense | 1.5–3 | same |
+| D4 very dense | > 3 | same (likely few samples in our data) |
+
+Where region area is not calibrated, bands use count per region (0–10, 11–30, 31–60, > 60) and this is stated.
+
+Data: own annotated footage (primary), Mall, ShanghaiTech Part B test (reference). Methods compared: YOLO11n and YOLO11s at 640/960 px; optional density-map model.
+
+### 2.2 Flow (line crossings)
+
+Per 1- and 5-minute windows: MAE of inflow and outflow; **net-flow bias** (drift risk for conservation, [10 §3.3](10_ML_FORECASTING_METHODOLOGY.md)); crossing precision/recall where individual crossings are annotated.
+
+### 2.3 Tracking (reference only)
+
+On 2 MOT20 sequences: MOTA, IDF1, ID switches — a configuration sanity check, not a project objective.
+
+## 3. Forecast evaluation
+
+For zone $i$, issue time $t$, horizon $h$, error $e = \hat N_i(t+h) - N_i(t+h)$ over test set $\mathcal T_h$:
+
+| Metric | Formula | Notes |
+|---|---|---|
+| MAE | $\frac{1}{|\mathcal T_h|}\sum |e|$ | Primary metric (persons) |
+| RMSE | $\sqrt{\frac{1}{|\mathcal T_h|}\sum e^2}$ | Penalises large misses (surges) |
+| Normalised MAE | $\frac{1}{|\mathcal T_h|}\sum |e|/C_i$ | Comparable across zone sizes |
+| MAPE | $\frac{100}{|\mathcal T'_h|}\sum |e|/N_i(t+h)$ over $\mathcal T'_h = \{N_i(t+h) \ge 20\}$ | MAPE is unstable near zero [39]; restricted subset only |
+| Skill vs persistence | $1 - \text{MAE}_{model}/\text{MAE}_{B0}$ | > 0 means better than persistence |
+| Peak-period MAE | MAE where true $u \ge 0.6$ | The operationally important regime |
+| Pinball loss | $\frac{1}{|\mathcal T|}\sum_q \rho_q(y - \hat y^{(q)})$ | Quantile quality |
+| Coverage | Share of $y \in [\hat y^{(0.1)}, \hat y^{(0.9)}]$ | Target 80 % |
+| Mean interval width | $\overline{\hat y^{(0.9)} - \hat y^{(0.1)}}$ | Sharpness |
+
+Reported per horizon (5/15/30) and by zone type.
+
+**Statistical comparison:** per-event MAE paired across models; Wilcoxon signed-rank test over test events with Holm correction for multiple comparisons. Diebold–Mariano [42] for long single series (real sessions).
+
+## 4. Congestion classification
+
+At each horizon, positive class = **true level ≥ HIGH** at $t+h$; prediction = $L(\hat u^{50}) \ge$ HIGH.
+
+| Metric | Formula |
+|---|---|
+| Precision | $TP/(TP+FP)$ |
+| Recall | $TP/(TP+FN)$ |
+| F1 | $2PR/(P+R)$ |
+| Confusion matrix | 4 × 4 over NORMAL/ELEVATED/HIGH/CRITICAL |
+| PR curve | Varying the decision threshold on $\hat u^{50}$ or $\hat u^{90}$ |
+
+Accuracy is not a headline metric because NORMAL dominates.
+
+## 5. Operational evaluation (alert level)
+
+- **Congestion episode:** maximal interval in which true $u_i \ge \theta_H$ (0.80) for ≥ 2 consecutive minutes; onset $t_{on}$.
+- An alert **covers** an episode if opened for the same zone within $[t_{on} - 35\ \text{min},\ t_{on} + 2\ \text{min}]$.
+
+| Metric | Definition |
+|---|---|
+| Warning lead time | $t_{on} - t_{alert}$ of the earliest covering alert; median and IQR; negative = late |
+| Missed-episode rate | Episodes without covering alert ÷ episodes |
+| False-alarm rate | Alerts not followed by an episode in the zone within $h + 5$ min ÷ alerts |
+| False alarms per hour | Operator burden |
+| Warning source mix | Share of episodes first warned by the 30/15/5-min forecast or by CURRENT |
+
+Computed by **replaying** test events through the real M6 + M7 code (including hysteresis), not an idealised approximation.
+
+## 6. Baseline comparison table (template)
+
+| Data | Horizon | B0 | B1 | B2 | B3 | RF | XGB (A4) | LSTM (A4) | GNN (A5) |
+|---|---|---|---|---|---|---|---|---|---|
+| SYN-clean, test-in-venue | 5 / 15 / 30 | — | — | — | — | — | — | — | — |
+| SYN-noisy, test-in-venue | 5 / 15 / 30 | — | — | — | — | — | — | — | — |
+| SYN-noisy, new venue V3 | 5 / 15 / 30 | — | — | — | — | — | — | — | — |
+| REAL (staged / event) | 5 / 15 / 30 | — | — | — | — | — | — | — | — |
+
+"—" = filled by T2 output. **No values may be entered by hand.**
+
+## 7. Generalisation
+
+| Test | Question |
+|---|---|
+| Unseen events, same topology | Generalises across schedules and attendance? |
+| Unseen topology V3 | Do global models transfer to a new venue? |
+| Synthetic → real | Does a synthetic-trained model beat persistence on real sessions? |
+| Clean → noisy inputs | How much does perception error degrade forecasts (RQ5)? |
+
+Degradation is expected at each step; the study reports its size rather than a pass/fail.
+
+## 8. Reporting checklist
+
+- [ ] Data origin and split stated for every table
+- [ ] Number of events, zones and minutes per split
+- [ ] Mean ± 95 % CI (bootstrap over events)
+- [ ] Baselines at each horizon
+- [ ] Hardware and prediction-cycle runtime
+- [ ] Negative results reported

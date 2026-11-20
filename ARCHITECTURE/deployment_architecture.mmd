@@ -1,0 +1,33 @@
+%% CROWDCAST — Deployment (single host, Docker Compose)
+%% Details: DOCUMENTATION/18_DEPLOYMENT_PLAN.md
+flowchart TB
+  Browser[Operator / organiser browser]
+
+  subgraph Host[Demo machine: Docker Compose, encrypted disk]
+    subgraph Net[Docker internal network]
+      RP[caddy:2<br/>reverse proxy, TLS]
+      FE[frontend<br/>nginx serving React build]
+      API[api<br/>uvicorn FastAPI x2 workers<br/>Alembic migrate on start]
+      SCH[scheduler<br/>APScheduler, 1 replica]
+      CV[cv-worker<br/>profile: gpu<br/>YOLO11 + ByteTrack]
+      SIMC[crowdsim-replay<br/>profile: sim]
+      DB[(postgres:16)]
+    end
+    VID[[videos volume<br/>read-only, cv-worker only]]
+    MOD[[models volume]]
+    PG[[pgdata volume]]
+    GPU{{NVIDIA GPU<br/>optional}}
+  end
+
+  Browser -- HTTPS 443 --> RP
+  RP -- "/" --> FE
+  RP -- "/api" --> API
+  API --> DB
+  SCH --> DB
+  CV -- "HTTP + X-API-Key" --> API
+  SIMC -- "HTTP + X-API-Key" --> API
+  VID --> CV
+  MOD --> SCH
+  MOD --> API
+  PG --- DB
+  GPU -.-> CV

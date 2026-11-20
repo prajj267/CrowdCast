@@ -1,0 +1,47 @@
+%% CROWDCAST — System architecture (modular monolith, 3 runtime processes)
+%% Source of truth for DOCUMENTATION/07_SYSTEM_ARCHITECTURE.md §3
+flowchart LR
+  subgraph Sources[Data sources]
+    V1[Recorded video files]
+    V2[RTSP cameras - optional]
+    SIM[T1 CROWDSIM simulator<br/>SYNTHETIC]
+    CSV[Manual annotation CSV<br/>MANUAL]
+  end
+
+  subgraph CVW[cv-worker process]
+    M1[M1 Video Ingestion<br/>OpenCV, 5 FPS sampling] --> M2[M2 CV Processing<br/>YOLO11 + ByteTrack<br/>regions + counting lines]
+    M2 --> M3[M3 Aggregation<br/>per zone per minute]
+  end
+
+  subgraph APIP[api process]
+    M8[M8 Backend API<br/>FastAPI, JWT, RBAC]
+    M5a[M5 Venue Graph]
+  end
+
+  subgraph SCHP[scheduler process - every 60 s]
+    M6[M6 Prediction Engine<br/>features + XGBoost quantile<br/>persistence fallback]
+    M7[M7 Congestion Risk Engine<br/>levels, risk score, alerts]
+    M5b[M5 Venue Graph]
+  end
+
+  DB[(M4 PostgreSQL 16<br/>config + time series)]
+  REG[[Model registry<br/>models/ + model_versions]]
+  UI[M9 React Dashboard]
+  T2[T2 Training & evaluation CLI]
+
+  V1 --> M1
+  V2 -.-> M1
+  M3 -- "POST /api/crowd/observations (REAL)" --> M8
+  SIM -- "POST /api/crowd/observations (SYNTHETIC)" --> M8
+  CSV -- "POST /api/crowd/observations/import (MANUAL)" --> M8
+  M8 <--> DB
+  M5a --- M8
+  M6 -- read window --> DB
+  M5b --- M6
+  REG --> M6
+  M6 -- predictions --> DB
+  M6 --> M7
+  M7 -- alerts --> DB
+  UI -- "HTTPS polling 5-10 s" --> M8
+  T2 -- read datasets --> DB
+  T2 -- write artefacts --> REG

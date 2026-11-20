@@ -1,0 +1,155 @@
+%% CROWDCAST — Entity-relationship diagram (PostgreSQL 16)
+%% Table definitions: DOCUMENTATION/13_DATABASE_DESIGN.md (v0.2: no users / event_operators, decision D7)
+erDiagram
+  VENUES ||--o{ ZONES : contains
+  VENUES ||--o{ ZONE_CONNECTIONS : has
+  VENUES ||--o{ CAMERA_SOURCES : has
+  VENUES ||--o{ EVENTS : hosts
+
+  ZONES ||--o{ ZONE_CONNECTIONS : "from / to"
+  ZONE_CONNECTIONS ||--o| COUNTING_LINES : "observed by"
+  CAMERA_SOURCES ||--o{ CAMERA_ZONE_REGIONS : defines
+  CAMERA_SOURCES ||--o{ COUNTING_LINES : defines
+  ZONES ||--o{ CAMERA_ZONE_REGIONS : "covered by"
+
+  EVENTS ||--o{ EVENT_SCHEDULE_ITEMS : schedules
+  ZONES ||--o{ EVENT_SCHEDULE_ITEMS : "located in"
+  EVENTS ||--o{ CROWD_OBSERVATIONS : records
+  ZONES ||--o{ CROWD_OBSERVATIONS : "measured in"
+  EVENTS ||--o{ PREDICTIONS : has
+  ZONES ||--o{ PREDICTIONS : "forecast for"
+  MODEL_VERSIONS ||--o{ PREDICTIONS : produces
+  EVENTS ||--o{ CONGESTION_ALERTS : raises
+  ZONES ||--o{ CONGESTION_ALERTS : concerns
+  PREDICTIONS ||--o| CONGESTION_ALERTS : triggers
+
+  VENUES {
+    bigint venue_id PK
+    text name
+    text floor_plan_path
+    numeric rho_plan
+  }
+  ZONES {
+    bigint zone_id PK
+    bigint venue_id FK
+    varchar code
+    text name
+    zone_type zone_type
+    numeric usable_area_m2
+    int planning_capacity
+    jsonb polygon
+    boolean is_entry
+    boolean is_exit
+    numeric threshold_high
+  }
+  ZONE_CONNECTIONS {
+    bigint connection_id PK
+    bigint venue_id FK
+    bigint from_zone_id FK "NULL = outside"
+    bigint to_zone_id FK "NULL = outside"
+    numeric boundary_width_m
+    int travel_time_s
+    boolean bidirectional
+  }
+  EVENTS {
+    bigint event_id PK
+    bigint venue_id FK
+    text name
+    timestamptz start_time
+    timestamptz end_time
+    int expected_attendance
+    event_status status
+    boolean is_synthetic
+  }
+  EVENT_SCHEDULE_ITEMS {
+    bigint item_id PK
+    bigint event_id FK
+    bigint zone_id FK "NULL = venue-wide"
+    text title
+    schedule_category category
+    timestamptz start_time
+    timestamptz end_time
+    int expected_attendance
+    numeric attraction_weight
+  }
+  CAMERA_SOURCES {
+    bigint camera_id PK
+    bigint venue_id FK
+    camera_kind kind
+    text uri
+    smallint target_fps
+    jsonb homography
+  }
+  CAMERA_ZONE_REGIONS {
+    bigint region_id PK
+    bigint camera_id FK
+    bigint zone_id FK
+    jsonb polygon_px
+    numeric coverage_fraction
+    boolean is_primary
+  }
+  COUNTING_LINES {
+    bigint line_id PK
+    bigint camera_id FK
+    bigint connection_id FK, UK
+    jsonb p1
+    jsonb p2
+    bigint positive_side_zone_id FK
+  }
+  CROWD_OBSERVATIONS {
+    bigint observation_id PK
+    bigint event_id FK
+    bigint zone_id FK
+    timestamptz bucket_start
+    int occupancy
+    int inflow
+    int outflow
+    real mean_speed_mps
+    obs_quality quality
+    obs_method method
+    data_origin data_origin
+  }
+  MODEL_VERSIONS {
+    bigint model_version_id PK
+    text name
+    text version
+    text model_family
+    text feature_set
+    text artifact_path
+    boolean is_active
+  }
+  PREDICTIONS {
+    bigint prediction_id PK
+    bigint event_id FK
+    bigint zone_id FK
+    timestamptz issued_at
+    smallint horizon_min
+    timestamptz target_time
+    real p10
+    real p50
+    real p90
+    congestion_level predicted_level
+    real risk_score
+    bigint model_version_id FK
+    boolean is_fallback
+  }
+  CONGESTION_ALERTS {
+    bigint alert_id PK
+    bigint event_id FK
+    bigint zone_id FK
+    alert_type alert_type
+    congestion_level level
+    smallint horizon_min
+    timestamptz predicted_onset
+    alert_status status
+    timestamptz opened_at
+    boolean auto_resolved
+    bigint prediction_id FK
+  }
+  AUDIT_LOG {
+    bigint audit_id PK
+    text actor "USER or SYSTEM"
+    text action
+    jsonb details
+    timestamptz created_at
+  }

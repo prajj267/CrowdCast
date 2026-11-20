@@ -1,0 +1,38 @@
+# YOLOX ONNX person-detector models (WORKFLOW task 1.4.1, decision D2).
+#
+# Source: official YOLOX repository releases, tag 0.1.1rc0 (published 2021-08-18). These are the
+#   files linked from demo/ONNXRuntime/README.md on the YOLOX main branch.
+# Licence: Apache-2.0 (repository LICENSE; checked through the GitHub API on 2026-11-20).
+# Checksums: the release does not publish any. The sha256 values below were computed on the first
+#   download (2026-11-20) and are verified on every later fetch (trust on first use).
+# Weights live in models/yolox/ (git-ignored) and are never committed.
+#
+# Fetch / verify:  uv run python -m tools.vision.fetch_models   (from backend/)
+
+source:
+  repository: https://github.com/Megvii-BaseDetection/YOLOX
+  release_tag: 0.1.1rc0
+  licence: Apache-2.0
+
+# Input preprocessing these exports expect. YOLOX changed convention after this release:
+#   legacy_rgb_imagenet : BGR->RGB, /255, ImageNet mean/std   (YOLOX 0.1.x code at this tag)
+#   raw_bgr             : BGR, 0..255, no normalisation        (YOLOX main branch code)
+# Determined empirically on 2026-11-20 (task 1.4.1, tools/vision/smoke_yolox.py) on YOLOX's own
+# assets/dog.jpg: with raw_bgr all three models found the dog, bicycle and vehicle; with
+# legacy_rgb_imagenet none of them detected anything at score >= 0.3. So these 0.1.1rc0 files
+# match the *main-branch* demo code, not the code at their own tag.
+preprocessing: raw_bgr
+
+models:
+  yolox_nano:
+    url: https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_nano.onnx
+    size_bytes: 3659407
+    sha256: c789161ed43c8269fcd4e67c67eeeb4e80c622da2eb296a20bc6007bd18a0b7d
+  yolox_tiny:
+    url: https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_tiny.onnx
+    size_bytes: 20219662
+    sha256: 427cc366d34e27ff7a03e2899b5e3671425c262ea2291f88bb942bc1cc70b0f7
+  yolox_s:
+    url: https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_s.onnx
+    size_bytes: 35858002
+    sha256: c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063

@@ -1,0 +1,47 @@
+%% CROWDCAST — ML pipeline (offline training/evaluation and online inference)
+%% Method: DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md
+flowchart TB
+  subgraph DATA[Data sources]
+    SYNC[CROWDSIM clean<br/>SYNTHETIC]
+    SYNN[CROWDSIM + noise model<br/>SYNTHETIC]
+    REAL[CV observations<br/>REAL]
+    MAN[Manual annotations<br/>MANUAL]
+    SCHED[Published schedules]
+    GRAPH[Venue graphs V1, V2, V3]
+  end
+
+  subgraph OFF[Offline - T2 training CLI]
+    SPLIT[Event-grouped split<br/>train / val / test-in-venue / test-V3 / real-test]
+    FB1[FeatureBuilder<br/>A1..A4 feature sets]
+    TGT["Target: y = (N(t+h) - N(t)) / C_i<br/>h = 5, 15, 30"]
+    BASE[Baselines B0-B3]
+    TUNE[GroupKFold + Optuna tuning<br/>train events only]
+    FIT[Fit XGBoost quantile q = .1 .5 .9<br/>+ LSTM optional, GNN stretch]
+    CONF[Split-conformal calibration<br/>validation events]
+    EVAL[Evaluate once on test sets<br/>MAE RMSE skill coverage PR lead time]
+    ABL[Ablation A1-A5 + Wilcoxon / Holm]
+    REGW[Write artefacts + manifest<br/>model_versions]
+  end
+
+  subgraph ON[Online - scheduler every 60 s]
+    WIN[Last 60 min observations]
+    FB2[Same FeatureBuilder]
+    PRED[Predict 3 horizons x 3 quantiles<br/>inverse transform, sort, conformal widen]
+    FALL{"Error, or under 15 min of history?"}
+    PERS[Persistence fallback]
+    OUT[predictions table]
+    RISK[M7 levels + alerts]
+  end
+
+  SYNC & SYNN & REAL & MAN --> SPLIT
+  SCHED --> FB1
+  GRAPH --> FB1
+  SPLIT --> FB1 --> TGT --> TUNE --> FIT --> CONF --> EVAL
+  SPLIT --> BASE --> EVAL
+  EVAL --> ABL
+  CONF --> REGW
+  REGW -. activate .-> PRED
+  WIN --> FB2 --> FALL
+  FALL -- no --> PRED --> OUT
+  FALL -- yes --> PERS --> OUT
+  OUT --> RISK
