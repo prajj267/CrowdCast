@@ -19,15 +19,15 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 2 | Venue graph and configuration | 1–2 | 3 | — | Done |
 | 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | Done |
 | 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | Done (MS2) |
-| 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | In progress |
+| 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Done |
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Not started |
 | 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | Not started |
 | 8 | Dashboard completion (React) | 8–9 | 6 | — | Not started |
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | Not started |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 5 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 5.3.1 (XGBoost quantile models)
+**Current focus:** Phase 6 (Phase 0 still open: doc updates 0.3.x)
+**Next task:** 6.1.1 (Phase 6 — CV pipeline)
 
 ---
 
@@ -220,10 +220,10 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 5.2.3 Splits by event only; a test fails if one event appears in two splits
 
 ### 5.3 XGBoost and registry
-- [ ] 5.3.1 XGBoost quantile regression (P10/P50/P90), direct multi-horizon; sort quantiles after the inverse transform
-- [ ] 5.3.2 Training CLI: build dataset → train → write a manifest (config, data hash, seed, git commit) → register in `model_versions`
-- [ ] 5.3.3 `POST /api/models/{id}/activate`; the online cycle uses the active model, with fallback to B0
-- [ ] 5.3.4 PREDICTED alerts driven by model forecasts
+- [x] 5.3.1 XGBoost quantile regression (P10/P50/P90), direct multi-horizon; sort quantiles after the inverse transform
+- [x] 5.3.2 Training CLI: build dataset → train → write a manifest (config, data hash, seed, git commit) → register in `model_versions`
+- [x] 5.3.3 `POST /api/models/{id}/activate`; the online cycle uses the active model, with fallback to B0
+- [x] 5.3.4 PREDICTED alerts driven by model forecasts
 
 **Exit:** an XGBoost A4 model trained on a few V1 events is active; a scripted surge raises a PREDICTED alert before the CURRENT alert.
 
@@ -335,6 +335,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 5.3.1–5.3.4 | `forecasting/xgb.py` (3-quantile booster per horizon, inverse transform + sorted quantiles), `tools/training/{dataset,train}.py` (validation-only metrics, manifest, registry), cycle uses the active model (cold start < 15 min, family check, any failure → B0, logged), `GET/POST /api/models…/activate`; xgboost + scikit-learn added; A4 model 447 trained on clean commit `9ba4377` and activated. **Phase 5 exit met** on the hand-written example event: FC PREDICTED 18 min before CURRENT; C1/WC release spikes not anticipated (logged as a demo, n = 1) | First training run recorded a dirty tree (edits during the run) → superseded; train.py now records the commit at start and refuses dirty trees. Validation-only numbers in EXPERIMENT_LOG; h5/h15 hit the 2000-round cap; P10–P90 under-covers at 30 min (0.751) — tuning + conformal in Phase 7 | 6.1.1 |
 | 2026-11-21 | 5.2.3 | V2 (10 zones) and V3 (12 zones) venue files (layouts invented from the doc 12 §5.4 descriptions, illustrative); `tools/crowdsim/generate.py` (DESIGN §9 placeholders, per-event seeds); 180 SYNTHETIC events simulated in 5.4 min (17 MB, git-ignored; every event empties); `configs/splits.json` frozen and committed BEFORE any training code: train 84 / validation 18 / test_in_venue 18 / test_new_venue 60 (seed 2027); 3 tests (disjoint, sizes, V3 held out, reproducible from the seed) | V3 needed a 12th zone to match the stated count (6 + 2 + 2 + food = 11): a facilities zone was added | 5.3.1 |
 | 2026-11-21 | 5.1.1–5.1.4, 5.2.1, 5.2.2 | `forecasting/features.py`: one causal `build_features` (F_HIST, F_FLOW, F_SCHED, F_NBR; configs A1–A4, A4_NONBR), `add_target` (y = ΔN/C, tail dropped); `forecasting/sources.py` (venue info, published schedule, training-only outflow shares); 15 tests incl. TC-ML-02 for every config, 60-min online window = whole-event row at t = 59/70/200/300, tampering with the future changes nothing, realised schedule never an input | Test review caught a weak check (window compared with a shifted history, hiding a fused-filter mismatch) → fixed by a fixed-look-back filter. Two deviations logged | 5.2.3 |
 | 2026-11-21 | 4.5.5, MS2 | `VenueMap` (SVG polygons from the venue file, filled by level now / +5 / +15 / +30, connections drawn, one-way dashed, hatched no-data, aria-labels + tooltips); Live layout fixed so it does not shift while queries load; alert wording built from fields in event time. **MS2 check done in the browser:** fresh synthetic event replayed at 120× with `run_predictions --follow`: zone colours changed (FC High 12:57 → Critical 13:17), persistence predictions stored, CURRENT + PREDICTED alerts opened; screenshot `reports/figures/ms2_live_page_synthetic_replay.png` | **Phase 4 exit met (MS2).** Density mode and flow-weighted edges deferred to Phase 8 (no per-edge flows in the API). At high replay speed panels refresh at different moments (alerts can lead cards by a few event-minutes); fine at real time | 5.1.1 |

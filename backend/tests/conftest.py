@@ -52,4 +52,7 @@ def db_conn(db_engine: Engine) -> Iterator[Connection]:
 def db_session(db_conn: Connection) -> Iterator[Session]:
     # Session commits become savepoints inside the outer, rolled-back transaction.
     with Session(bind=db_conn, join_transaction_mode="create_savepoint") as session:
+        # Every DB test starts with no active model, whatever the dev DB holds (the change is
+        # inside the rolled-back transaction). Tests that need a model activate one themselves.
+        session.execute(text("UPDATE model_versions SET is_active = false WHERE is_active"))
         yield session

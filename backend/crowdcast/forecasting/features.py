@@ -135,7 +135,9 @@ def _slope(a: Arr, k: int) -> Arr:
         m = y.shape[0]
         x = np.arange(m, dtype=np.float64) - (m - 1) / 2
         ok = ~np.isnan(y)
-        with np.errstate(invalid="ignore", divide="ignore"):
+        # an all-NaN column (zone without data in the window) legitimately gives NaN
+        with np.errstate(invalid="ignore", divide="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
             num = np.where(ok, x[:, None] * (y - np.nanmean(y, axis=0)), 0.0).sum(axis=0)
             den = np.where(ok, x[:, None] ** 2, 0.0).sum(axis=0)
             out[r] = np.where(den > 0, num / den, np.nan)
