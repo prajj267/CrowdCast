@@ -8,8 +8,8 @@ It is a college CSE project with a research component, built by a single develop
 CPU-only laptop (no GPU).
 
 > **Status: Phase 1 (foundations) in progress.** The database, tooling and a CPU person detector
-> are built and tested. **No forecasting results exist yet.** Benchmark numbers in
-> [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md) are marked provisional until re-run from committed code.
+> are built and tested. **No forecasting results exist yet.** Every run that has been done is in
+> [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md).
 > Progress is tracked in [WORKFLOW.md](WORKFLOW.md).
 
 ## Research question
@@ -48,7 +48,7 @@ CROWDSIM (synthetic events) ─────────────────�
 | Python environment (uv, Python 3.12), ruff, mypy (strict), pytest, pre-commit | Done |
 | PostgreSQL 16 schema (13 tables, constraints that reject invalid data), Alembic migration | Done |
 | YOLOX ONNX person detector on CPU (letterbox → decode → NMS), checksummed model fetch | Done |
-| CPU speed benchmark of YOLOX nano/tiny/s | Done (provisional numbers) |
+| CPU speed benchmark of YOLOX nano/tiny/s | Done (see EXPERIMENT_LOG.md) |
 | Venue graph, CROWDSIM, ingestion API, baselines, XGBoost, dashboard | Not started |
 
 ## Quick start (Windows, PowerShell)
