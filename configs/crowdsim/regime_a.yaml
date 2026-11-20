@@ -1,0 +1,63 @@
+# CROWDSIM parameter regime A (default). See backend/tools/crowdsim/DESIGN.md.
+#
+# EVERY VALUE BELOW IS A PLACEHOLDER [PH] unless marked [DOC]: a plausible order of magnitude,
+# not calibrated and not taken from a verified source. Results produced with this file must say
+# so (CLAUDE.md §6). Regime B (regime_b.yaml) changes key values for the sensitivity check.
+regime: A
+tick_s: 10                      # [DOC] doc 12 §5.1
+tail_min: 30                    # keep simulating up to end_time + 30 min or until empty
+
+arrivals:
+  turnout: [0.85, 1.05]         # U(lo, hi) x expected_attendance
+  baseline_weight: 0.6
+  ramp_up_min: 60
+  stop_before_end_min: 60
+  surge_lead_min: 20            # surge centre before each published item start
+  surge_sigma_min: 15
+
+choice:
+  beta_attraction: 3.0
+  beta_distance_per_min: 0.15
+  beta_crowding: 2.0
+  beta_leave: 2.5
+  item_rise_min: 30             # attraction ramps up over the 30 min before an item
+  exit_wave_min: 30             # extra leave pressure after the final item
+  base_attraction:              # by zone type; gates (ENTRY/EXIT/ENTRY_EXIT) are never chosen
+    STAGE: 0.3
+    FOOD: 0.4
+    EXHIBITION: 0.3
+    OPEN_AREA: 0.2
+    SEATING: 0.2
+    FACILITY: 0.15
+    CORRIDOR: 0.0
+    OTHER: 0.1
+
+dwell:
+  sigma: 0.6                    # lognormal shape
+  after_item_median_min: 3
+  after_item_sigma: 0.5
+  median_min:                   # by zone type when no item is running
+    FOOD: 20
+    EXHIBITION: 15
+    STAGE: 10
+    OPEN_AREA: 10
+    SEATING: 15
+    FACILITY: 5
+    CORRIDOR: 1
+    OTHER: 5
+    ENTRY: 1
+    EXIT: 1
+    ENTRY_EXIT: 1
+
+movement:
+  specific_flow_p_per_m_min: 75 # q_s; order of magnitude for walkways, NOT verified at source
+  jam_capacity_factor: 1.5      # edge into zone i closed while N_i >= 1.5 * C_i (spillback)
+  v_free_mps: 1.3
+  rho_jam_p_per_m2: 5.0
+
+perturbation:
+  start_offset_min: [-5, 10]    # [DOC] U(-5, +10) min
+  popularity_sigma: 0.3         # [DOC] LogNormal(0, 0.3)
+  popup_prob_per_hour: 0.05     # [DOC] "5 %" (unit not stated in doc 12; per event-hour assumed)
+  popup_duration_min: [20, 45]
+  popup_attraction: 0.6

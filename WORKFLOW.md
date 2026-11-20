@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 3 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 3.2.1 (CROWDSIM design)
+**Next task:** 3.3.1–3.3.6 (CROWDSIM core)
 
 ---
 
@@ -154,7 +154,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 3.1.2 Tests: valid batch, partial rejection, wrong zone, unaligned bucket, SYNTHETIC posted to a non-synthetic event
 
 ### 3.2 CROWDSIM design (T1.6)
-- [ ] 3.2.1 Design note `backend/tools/crowdsim/DESIGN.md`: parameters, ranges and seeds; placeholder values clearly labelled
+- [x] 3.2.1 Design note `backend/tools/crowdsim/DESIGN.md`: parameters, ranges and seeds; placeholder values clearly labelled
 
 ### 3.3 CROWDSIM core ([12 §5.1](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md))
 - [ ] 3.3.1 Arrivals (non-homogeneous Poisson) and agent state; tick δ = 10 s
@@ -333,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 3.2.1 | `tools/crowdsim/DESIGN.md` + `configs/crowdsim/regime_a.yaml` / `regime_b.yaml`: every value tagged [DOC] or [PH] placeholder; bucket convention for exact conservation; seeds from master 2027 | Interpretations recorded: pop-up 5 % per event-hour (unit unstated in doc 12); agents counted in zones, never on edges; arrivals follow the published schedule, choices the actual one | 3.3 |
 | 2026-11-20 | 3.1.1, 3.1.2 | Ingestion contract: `ingestion/validation.py` (pure batch + row rules), `repository.upsert_observations` (ON CONFLICT, xmax insert/update count), `POST /api/crowd/observations`; 12 API tests (partial rejection with reasons, upsert, origin and status guards, limits) | No ADMIN (D7) → stricter SYNTHETIC/back-fill rules; future check REAL-only because replays use event time; `source` not stored — all in doc 14 §6 (contract change) | 3.2.1 |
 | 2026-11-20 | 2.3.3, 2.3.4 | Read API: venue, zones (§3.6 shape), connections, graph/validate, events list (keyset cursor) + detail, schedule; `PATCH` status PLANNED→LIVE→ENDED (graph check, 409/422, audited); `storage/repository.py`, `api/schemas.py`, routers; `VenueGraph.from_connections` for DB rows; OpenAPI at `/api/docs`; 14 API tests; doc 14 → v0.2 (§6 amendments, contract change) | **Phase 2 exit met** (8 zones loaded; zones endpoint returns them; invalid graph rejected). Create endpoints not built (YAML import instead; deviation logged) | 3.1.1 |
 | 2026-11-20 | 2.3.2 | `api/app.py` (`create_app`, CORS, request-id middleware, `GET /api/health`), `api/errors.py` (doc 14 §1.1 envelope for 400/404/405/409/422/500), `storage.check_database`; 8 API tests; server smoke-tested with uvicorn; `httpx` dev dependency | Health returns 503 when the DB is down (spec silent on status code). 401/403/429 omitted (D7). Starlette warns that `httpx` should become `httpx2` in its test client: works, not changed yet | 2.3.3 |
