@@ -102,7 +102,7 @@ Python lives in `backend/` (uv project, uv-managed CPython 3.12; `python-prefere
 | Apply migrations | `uv run alembic upgrade head` |
 | New migration after a model change | `uv run alembic revision --autogenerate -m "<what>"`, then **review the file** (enum types are not dropped automatically) |
 | psql shell | `docker exec -it crowdcast-db psql -U crowdcast -d crowdcast` |
-| All checks (format, lint, types, tests) | `powershell -ExecutionPolicy Bypass -File scripts\check.ps1` (repo root) |
+| All checks (backend + frontend) | `powershell -ExecutionPolicy Bypass -File scripts\check.ps1` (repo root) |
 | Tests only / without DB | `uv run pytest` / `uv run pytest -m "not db"` |
 | Format + autofix lint | `uv run ruff format . ; uv run ruff check --fix .` |
 | Fetch / verify YOLOX models (≈ 60 MB) | `uv run python -m tools.vision.fetch_models` |
@@ -112,6 +112,7 @@ Python lives in `backend/` (uv project, uv-managed CPython 3.12; `python-prefere
 | Run CROWDSIM for one event (SYNTHETIC) | `uv run python -m tools.crowdsim.run --event ../configs/events/v1_spring_fest_day1.yaml [--regime b]` → `data/synthetic/crowdsim/` |
 | CROWDSIM figure / replay | `uv run python -m tools.crowdsim.plot <run dir>`; `uv run python -m tools.crowdsim.replay <run dir> --event-id N --speedup 60` (API must be running; `--speedup 0` = as fast as possible) |
 | Prediction cycles in event time | `uv run python -m tools.run_predictions --event-id N` (back-fill) or `... --follow` (while a replay posts) |
+| Frontend (from `frontend/`) | `npm install` once; `npm run dev` (http://127.0.0.1:5173, proxies `/api` to :8000); `npm run gen:api` after any API change; `npm run lint` / `npm run build` |
 | Tests needing model files | `uv run pytest -m model` (skipped if `models/yolox/` is empty) |
 
 Gotchas:

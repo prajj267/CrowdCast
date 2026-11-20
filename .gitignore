@@ -42,3 +42,4 @@ frontend/dist/
 .idea/
 Thumbs.db
 .DS_Store
+frontend/node_modules/.tmp/
