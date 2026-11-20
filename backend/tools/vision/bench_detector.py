@@ -201,7 +201,10 @@ def main(argv: list[str] | None = None) -> int:
         "numpy": np.__version__,
         "git_commit": git_commit(),
     }
-    print(f"run {run_id}: {args.video.name} {width}x{height} @ {src_fps:.2f} fps, every {step}th")
+    print(
+        f"run {run_id}: {args.video.name} {width}x{height} @ {src_fps:.2f} fps, every {step}th",
+        flush=True,
+    )
 
     variants: list[float | None] = [None, args.tile_overlap] if args.tiled else [None]
     results = []
@@ -214,7 +217,8 @@ def main(argv: list[str] | None = None) -> int:
                 f"{label:16s} {r.input_px}px x{r.runs_per_frame:<2d} "
                 f"median {r.detect_ms_median:7.1f} ms  p90 {r.detect_ms_p90:7.1f} ms  "
                 f"{r.detector_fps:6.1f} FPS  RTF {r.realtime_factor:5.2f}  "
-                f"persons/frame {r.persons_per_frame_mean:5.1f}"
+                f"persons/frame {r.persons_per_frame_mean:5.1f}",
+                flush=True,  # show each result as soon as it is ready
             )
 
     run_dir = args.out / run_id

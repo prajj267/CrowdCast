@@ -49,6 +49,7 @@ CROWDSIM (synthetic events) ─────────────────�
 | PostgreSQL 16 schema (13 tables, constraints that reject invalid data), Alembic migration | Done |
 | YOLOX ONNX person detector on CPU (letterbox → decode → NMS), checksummed model fetch | Done |
 | CPU speed benchmark of YOLOX nano/tiny/s | Done (see EXPERIMENT_LOG.md) |
+| Tiled detection for small, distant people (provisional default: YOLOX-s + tiles) | Done; accuracy not yet measured |
 | Venue graph, CROWDSIM, ingestion API, baselines, XGBoost, dashboard | Not started |
 
 ## Quick start (Windows, PowerShell)

@@ -15,7 +15,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | Phase | Name | Target week | Est. days | Milestone | Status |
 |---|---|---|---|---|---|
 | 0 | Decisions, approvals, scope update | 0 | 2 | MS0 | Not started |
-| 1 | Foundations (repo, env, DB) | 1 | 3 | MS1 | In progress |
+| 1 | Foundations (repo, env, DB) | 1 | 3 | MS1 | Done (MS1) |
 | 2 | Venue graph and configuration | 1–2 | 3 | — | Not started |
 | 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | Not started |
 | 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | Not started |
@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 1 (Phase 0 still open: D8 and doc updates 0.3.x)
-**Next task:** 1.4.3 (choose model + sampling rate; needs decision on small-person recall)
+**Next task:** 2.1.1 (venue YAML schema)
 
 ---
 
@@ -72,6 +72,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 | 2026-11-20 | [06 FR-AUTH](DOCUMENTATION/06_REQUIREMENTS_SPECIFICATION.md), [13](DOCUMENTATION/13_DATABASE_DESIGN.md), [14](DOCUMENTATION/14_API_SPECIFICATION.md), [19 §3](DOCUMENTATION/19_SECURITY_AND_PRIVACY.md) | JWT auth + 4-role RBAC | No auth | D7: solo scope |
 | 2026-11-20 | [09 §4](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md) (CV-01) | Ultralytics YOLO11 + built-in ByteTrack | YOLOX via ONNX Runtime + standalone ByteTrack | D2: licence (Apache-2.0 instead of AGPL-3.0) |
 | 2026-11-20 | [09 §3](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 1.4.2 | Detector input 640 px (or 960 px) chosen per camera; benchmark every model at 416 and 640 px | The official YOLOX ONNX files have fixed inputs (nano/tiny 416, s 640); each model is used and benchmarked at its export size only | Other sizes need a re-export with PyTorch (heavy dependency); not justified unless measured recall requires it |
+| 2026-11-20 | [09 §2–4](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 1.4.3 | Whole frame resized to the detector input | **Tiled detection** (`crowdcast/vision/tiling.py`): overlapping tiles at the model input size (overlap 0.2), drop boxes cut at inner tile edges, one full-frame pass, merge NMS. **Provisional default: YOLOX-s + tiles at 5 FPS** (≈ 3 s processing per video second, offline); YOLOX-nano + tiles (≈ real time) as fast fallback. Final model choice by accuracy on MOT20 in 7.1 | Untiled models detect few of the small, distant people in 1080p wide shots (bench-20261120T134304Z: 0.9–8.5 detections/frame untiled vs 44.8–61.8 tiled); accuracy not yet measured |
 
 ---
 
@@ -117,7 +118,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ### 1.4 CV environment smoke test (T1.8, adapted to CPU)
 - [x] 1.4.1 Install onnxruntime (CPU); get the official YOLOX ONNX models (nano/tiny/s) from the YOLOX repository releases, with the licence and source recorded; run on one image with YOLOX's pre/post-processing (letterbox, decode, NMS)
 - [x] 1.4.2 Measure FPS of YOLOX-nano/tiny/s at their fixed export sizes (nano/tiny 416 px, s 640 px; see Deviation log) on a public sample clip (check download size first); record the results in `EXPERIMENT_LOG.md`
-- [ ] 1.4.3 Choose the model and frame-sampling rate from the measurements; record it in the Deviation log
+- [x] 1.4.3 Choose the model and frame-sampling rate from the measurements; record it in the Deviation log
 
 **Exit (MS1):** `docker compose up -d` plus `alembic upgrade head` work; `pytest` passes; CPU detector speed measured and recorded.
 
@@ -331,8 +332,9 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
-| 2026-11-20 | 1.4.2 re-run | Benchmark re-run from committed code `18f6812` (bench-20261120T133722Z), logged; provisional run marked superseded | Speed varied 23–44 % between runs (background load); detections identical. Use repeated runs for any final speed figure | 1.4.3 |
-| 2026-11-20 | repo | README rewritten for current state; first commit `f1b56aa`; pushed to public GitHub repo; D3 changed to public | Benchmark run bench-20261120T133002Z predates the commit; re-run from committed code before citing | 1.4.3 |
+| 2026-11-20 | 1.4.3, repo | `TiledDetector` + 7 tests; benchmark `--tiled`, prints live; run bench-20261120T134304Z logged; provisional choice YOLOX-s + tiles @ 5 FPS (deviation logged). Git history rewritten to remove AI co-author trailers (messages only; IDs in logs updated) and force-pushed | MS1 reached. Model choice provisional until MOT20 accuracy (7.1); doc 09 still describes YOLO11 and no tiling (fold into 0.3.x doc updates) | 2.1.1 |
+| 2026-11-20 | 1.4.2 re-run | Benchmark re-run from committed code `f78e479` (was `18f6812`) (bench-20261120T133722Z), logged; provisional run marked superseded | Speed varied 23–44 % between runs (background load); detections identical. Use repeated runs for any final speed figure | 1.4.3 |
+| 2026-11-20 | repo | README rewritten for current state; first commit `0411799` (was `f1b56aa`); pushed to public GitHub repo; D3 changed to public | Benchmark run bench-20261120T133002Z predates the commit; re-run from committed code before citing | 1.4.3 |
 | 2026-11-20 | 1.4.2 | `tools/vision/bench_detector.py` + tests; clip: Wikimedia Commons Shibuya Crossing (CC BY-SA 4.0, SHA-1 verified) in `videos/public/`; run bench-20261120T133002Z logged in EXPERIMENT_LOG (provisional: code uncommitted) | All three models run faster than real time at 5 FPS on CPU, but nano/tiny at 416 px find far fewer people per frame than s at 640 px on this 1080p wide shot (no ground truth, so recall not measured). Wikimedia blocked scripted download (HTTP 429); user downloaded by browser | 1.4.3 |
 | 2026-11-20 | 1.4.1 | onnxruntime + numpy + opencv-python-headless; YOLOX nano/tiny/s ONNX (release 0.1.1rc0, Apache-2.0) fetched to `models/yolox/` with sizes + SHA-256 in `configs/vision/yolox_models.yaml`; `crowdcast/vision` (`PersonDetector` interface, YOLOX letterbox→decode→NMS); smoke test on YOLOX `assets/dog.jpg`; 25 tests pass + 15 db skipped (Docker off) | Found: these exports need the *raw BGR* input of the YOLOX main branch (legacy ImageNet normalisation gave no detections); inputs are fixed-size (deviation logged). Release has no checksums → trust on first use | 1.4.2 |
 | 2026-11-20 | 1.2, 1.3 | uv + managed CPython 3.12.16; pyproject, ruff/mypy/pytest/pre-commit, `scripts/check.ps1`; config + time helpers; Postgres 16 in Docker; ORM models + Alembic migration v1 (upgrade/downgrade/upgrade verified); doc 13 → v0.2 and ER diagram updated for D6/D7; 29 tests pass (15 against live DB) | Fixed: `localhost` IPv6 stall (use 127.0.0.1); a `SET` before Alembic silently rolled back the migration. Nothing committed yet | 1.4.1 |
