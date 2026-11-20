@@ -6,14 +6,18 @@ Keeps SQL in the storage module; the API maps the returned rows to its response 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, literal_column, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.dml import ReturningInsert
 
-from crowdcast.common.enums import EventStatus
+from crowdcast.common.enums import DataOrigin, EventStatus
 from crowdcast.storage.models import (
     AuditLog,
     CameraSource,
+    CrowdObservation,
     Event,
     EventScheduleItem,
     ModelVersion,
@@ -135,3 +139,45 @@ def set_event_status(session: Session, event: Event, new_status: EventStatus) ->
         )
     )
     session.flush()
+
+
+OBSERVATION_FIELDS = (
+    "zone_id",
+    "bucket_start",
+    "occupancy",
+    "occupancy_raw",
+    "inflow",
+    "outflow",
+    "mean_speed_mps",
+    "quality",
+    "method",
+)
+
+
+def upsert_observations(
+    session: Session, event_id: int, origin: DataOrigin, rows: list[dict[str, Any]]
+) -> tuple[int, int]:
+    """Insert or update zone-minutes on the key (event, zone, bucket, origin); validated rows only.
+
+    Returns (inserted, updated). A later batch for the same key replaces the stored values, so a
+    replay can be re-run safely. Uses PostgreSQL's ``xmax = 0`` to tell inserts from updates.
+    """
+    if not rows:
+        return 0, 0
+    values = [
+        {"event_id": event_id, "data_origin": origin, **{f: r[f] for f in OBSERVATION_FIELDS}}
+        for r in rows
+    ]
+    ins = insert(CrowdObservation).values(values)
+    keep = ("zone_id", "bucket_start")  # part of the conflict key
+    upsert = ins.on_conflict_do_update(
+        index_elements=["event_id", "zone_id", "bucket_start", "data_origin"],
+        set_={
+            **{f: ins.excluded[f] for f in OBSERVATION_FIELDS if f not in keep},
+            "ingested_at": func.now(),
+        },
+    )
+    stmt: ReturningInsert[tuple[bool]] = upsert.returning(literal_column("(xmax = 0)"))
+    flags = list(session.scalars(stmt))
+    inserted = sum(1 for f in flags if f)
+    return inserted, len(flags) - inserted
