@@ -116,6 +116,7 @@ Python lives in `backend/` (uv project, uv-managed CPython 3.12; `python-prefere
 | Generate the 180-event SYNTHETIC dataset | `uv run python -m tools.crowdsim.generate` (~6 min, `data/synthetic/`); splits are frozen in `configs/splits.json` — never re-draw |
 | Train a model (clean tree only) | `uv run python -u -m tools.training.train --feature-set A4` (~20 min) → `models/xgb/…` + `model_versions` row (inactive) |
 | Activate a model | `POST /api/models/{id}/activate` (API running); the cycle then uses it, with B0 fallback |
+| Run a camera on a recorded clip (REAL) | `uv run python -u -m tools.vision.run_camera --camera ../configs/cameras/shibuya_cam1.yaml --event-id N` (event LIVE, not synthetic; `--dry-run` posts nothing) |
 | Tests needing model files | `uv run pytest -m model` (skipped if `models/yolox/` is empty) |
 
 Gotchas:

@@ -20,14 +20,14 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | Done |
 | 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | Done (MS2) |
 | 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Done |
-| 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Not started |
-| 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | Not started |
+| 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Done (MS3) |
+| 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | In progress |
 | 8 | Dashboard completion (React) | 8–9 | 6 | — | Not started |
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | Not started |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 6 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 6.3.3 (post REAL observations from a clip) + 6.3.4 regression test
+**Current focus:** Phase 7 (Phase 0 still open: doc updates 0.3.x)
+**Next task:** 7.1.1 (Phase 7)
 
 ---
 
@@ -244,8 +244,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ### 6.3 Counting and aggregation (M3, [09 §6](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md))
 - [x] 6.3.1 Occupancy per frame (foot point inside the polygon)
 - [x] 6.3.2 Line crossings with direction and debounce
-- [ ] 6.3.3 Minute aggregation with quality flags; posts REAL observations to the ingestion API
-- [ ] 6.3.4 Geometry and aggregation unit tests ([17 §2.1](DOCUMENTATION/17_TESTING_STRATEGY.md)); one fixed-clip regression test
+- [x] 6.3.3 Minute aggregation with quality flags; posts REAL observations to the ingestion API
+- [x] 6.3.4 Geometry and aggregation unit tests ([17 §2.1](DOCUMENTATION/17_TESTING_STRATEGY.md)); one fixed-clip regression test
 
 **Exit (MS3):** a recorded clip produces REAL observations end to end, together with Phase 5 complete.
 
@@ -336,6 +336,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 6.3.3, 6.3.4, MS3 | `tools/vision/run_camera.py` (camera YAML → pipeline → REAL observations via the ingestion API, aggregates-only summary); Shibuya demo venue/camera/event configs (illustrative halves, illustrative event time); fixed-clip regression test (first 5 s, tiled YOLOX-s, frozen aggregates). **MS3 met:** the public clip produced REAL observations end to end (2 zone-minutes, 0 rejected; logged as a demo, no ground truth) | To place polygons, one downscaled frame was viewed in the scratch folder and deleted immediately (never in the repo or DB). Untiled detection found almost nobody in the dense clip, so the regression test uses tiling | 7.1.1 |
 | 2026-11-21 | 6.2.3, 6.3.1, 6.3.2 (+ 6.3.3 logic) | `aggregation/counting.py`: foot-point occupancy per region, debounced line crossings (band 10 px, one per direction per 10 s, step-back cancels), line orientation from the camera's regions, minute aggregation (median / κ, flows, LOW_CONFIDENCE / PARTIAL); `vision/pipeline.py` frames → detector → ByteTrack → rows; 13 tests incl. a privacy test (pipeline writes nothing to disk) | A test I wrote first mis-stated rule 3 (out-then-in within 10 s is a step-back, cancelled) — test corrected, code was right. Flows for zones without a region in the camera are not emitted as rows | 6.3.3 |
 | 2026-11-21 | 6.2.1, 6.2.2 | 6.2.1 = existing `PersonDetector` / `YoloxOnnxDetector`; `vision/tracking.py` ByteTracker (doc 09 §5 thresholds, buffer 30 frames, unconfirmed tracks, geometry-only output with foot point); 6 tests on synthetic boxes | In-house ByteTrack (deviation logged); scipy treated as untyped in mypy | 6.3.1 |
 | 2026-11-21 | 6.1.1, 6.1.2 | `vision/frames.py` FrameSource (sampled frames stamped with event time = start + i/fps, in memory only); camera YAML v1 `venue_graph/camera_config.py` (regions with κ + primary, counting lines on venue connections, checked against the venue); doc 12 → v0.4 §6.3 (contract change); 9 tests (generated clip, no people) | ByteTrack decision: implement the algorithm in-house (~150 lines, scipy assignment) instead of `supervision` (MIT, but 9 extra runtime deps incl. PyAV/matplotlib) — deviation logged with 6.2.2 | 6.2.2 |
