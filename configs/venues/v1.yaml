@@ -1,0 +1,82 @@
+# Reference topology V1 - college festival (DOCUMENTATION/11 §6; format: 12 §6.1).
+#
+# ILLUSTRATIVE VALUES ONLY - for design, simulation (CROWDSIM) and the demo. They are not
+# measurements of any real venue and not safety recommendations (doc 11 §6).
+#
+# Provenance of each value:
+#   [11]  areas, capacities, zone types and the connection graph: doc 11 §6
+#   [13]  venue name, rho_plan, plan size, MS/C1 polygons, C1<->MS width/time: doc 13 §6
+#   [14]  FC polygon: doc 14 §3.7
+#   [new] invented for this file (task 2.1.2) so the venue is complete; placeholders
+format_version: 1
+illustrative: true
+
+venue:
+  name: North Campus Grounds   # [13]
+  address: Example University  # [13]
+  rho_plan: 1.5                # [13] persons/m2 - illustrative, not a safety value (doc 11 §4)
+  plan_width: 1200             # [13] plan units, not metres
+  plan_height: 800             # [13]
+
+zones:
+  - code: G1
+    name: Main Gate
+    type: ENTRY_EXIT                                          # [11]
+    area_m2: 300                                              # [11]
+    capacity: 450                                             # [11]
+    polygon: [[250, 290], [400, 290], [400, 390], [250, 390]] # [new]
+  - code: C1
+    name: Central Corridor
+    type: CORRIDOR                                            # [11]
+    area_m2: 400                                              # [11]
+    capacity: 500                                             # [11]
+    polygon: [[400, 300], [600, 300], [600, 380], [400, 380]] # [13]
+  - code: MS
+    name: Main Stage
+    type: STAGE                                               # [11]
+    area_m2: 2000                                             # [11]
+    capacity: 3000                                            # [11]
+    polygon: [[600, 100], [1100, 100], [1100, 450], [600, 450]] # [13]
+  - code: FC
+    name: Food Court
+    type: FOOD                                                # [11]
+    area_m2: 800                                              # [11]
+    capacity: 900                                             # [11]
+    polygon: [[200, 450], [450, 450], [450, 700], [200, 700]] # [14]
+  - code: EX
+    name: Exhibition Hall
+    type: EXHIBITION                                          # [11]
+    area_m2: 600                                              # [11]
+    capacity: 600                                             # [11]
+    polygon: [[350, 80], [580, 80], [580, 280], [350, 280]]   # [new]
+  - code: C2
+    name: Side Path
+    type: CORRIDOR                                            # [11]
+    area_m2: 250                                              # [11]
+    capacity: 300                                             # [11]
+    polygon: [[470, 480], [1100, 480], [1100, 540], [470, 540]] # [new]
+  - code: G2
+    name: Back Gate
+    type: EXIT                                                # [11]
+    area_m2: 200                                              # [11]
+    capacity: 300                                             # [11]
+    polygon: [[1100, 560], [1180, 560], [1180, 660], [1100, 660]] # [new]
+  - code: WC
+    name: Facilities
+    type: FACILITY                                            # [11]
+    area_m2: 100                                              # [11]
+    capacity: 80                                              # [11]
+    polygon: [[60, 500], [180, 500], [180, 620], [60, 620]]   # [new]
+
+# Graph edges: [11]. Widths (m) and travel times (s): [new] except C1<->MS [13].
+connections:
+  - {from: OUTSIDE, to: G1, width_m: 10, travel_time_s: 20}
+  - {from: G1, to: C1, width_m: 8, travel_time_s: 30}
+  - {from: C1, to: MS, width_m: 8, travel_time_s: 45}          # [13]
+  - {from: C1, to: FC, width_m: 6, travel_time_s: 40}
+  - {from: C1, to: EX, width_m: 4, travel_time_s: 35}
+  - {from: FC, to: C2, width_m: 4, travel_time_s: 40}
+  - {from: MS, to: C2, width_m: 5, travel_time_s: 50}
+  - {from: C2, to: G2, width_m: 4, travel_time_s: 30}
+  - {from: G2, to: OUTSIDE, width_m: 6, travel_time_s: 15, bidirectional: false}  # exit-only gate [11]
+  - {from: FC, to: WC, width_m: 3, travel_time_s: 20}

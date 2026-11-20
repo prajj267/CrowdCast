@@ -16,7 +16,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 |---|---|---|---|---|---|
 | 0 | Decisions, approvals, scope update | 0 | 2 | MS0 | Not started |
 | 1 | Foundations (repo, env, DB) | 1 | 3 | MS1 | Done (MS1) |
-| 2 | Venue graph and configuration | 1–2 | 3 | — | Not started |
+| 2 | Venue graph and configuration | 1–2 | 3 | — | In progress |
 | 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | Not started |
 | 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | Not started |
 | 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Not started |
@@ -26,8 +26,8 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | Not started |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 1 (Phase 0 still open: D8 and doc updates 0.3.x)
-**Next task:** 2.1.1 (venue YAML schema)
+**Current focus:** Phase 2 (Phase 0 still open: doc updates 0.3.x)
+**Next task:** 2.1.3 (schedule format + example V1 schedule)
 
 ---
 
@@ -127,8 +127,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ## Phase 2 — Venue graph and configuration (M5)
 
 ### 2.1 Configuration formats
-- [ ] 2.1.1 Venue YAML schema (zones: code, type, area, capacity, polygon; connections: from, to, width, travel time, bidirectional), per [12 §6](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md)
-- [ ] 2.1.2 `configs/venues/v1.yaml` from [11 §6](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md) (illustrative values, labelled as such)
+- [x] 2.1.1 Venue YAML schema (zones: code, type, area, capacity, polygon; connections: from, to, width, travel time, bidirectional), per [12 §6](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md)
+- [x] 2.1.2 `configs/venues/v1.yaml` from [11 §6](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md) (illustrative values, labelled as such)
 - [ ] 2.1.3 Schedule YAML/CSV format and one example event schedule for V1
 
 ### 2.2 Venue graph module (M5)
@@ -332,6 +332,8 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 2.1.2 | `configs/venues/v1.yaml`: 8 zones, 10 connections (19 directed edges) from doc 11 §6, test that it matches the doc 11 table | Docs give areas/capacities/graph and 3 polygons + 1 edge; 5 polygons and 9 widths/travel times invented and tagged `[new]` (illustrative placeholders) | 2.1.3 |
+| 2026-11-20 | 2.1.1 | Venue YAML format v1 as Pydantic models (`crowdcast/venue_graph/config.py`, `interfaces.py`) + 26 tests; doc 12 → v0.2 (§6.1 format spec, contract change); `shapely` added (BSD-3-Clause) for polygon validity | Entry/exit flags derived from OUTSIDE connections; `illustrative` flag required in every venue file. GitHub contributor sidebar still showed Claude after the rewrite: API shows only prajj267, so it is GitHub's cache | 2.1.2 |
 | 2026-11-20 | 1.4.3, repo | `TiledDetector` + 7 tests; benchmark `--tiled`, prints live; run bench-20261120T134304Z logged; provisional choice YOLOX-s + tiles @ 5 FPS (deviation logged). Git history rewritten to remove AI co-author trailers (messages only; IDs in logs updated) and force-pushed | MS1 reached. Model choice provisional until MOT20 accuracy (7.1); doc 09 still describes YOLO11 and no tiling (fold into 0.3.x doc updates) | 2.1.1 |
 | 2026-11-20 | 1.4.2 re-run | Benchmark re-run from committed code `f78e479` (was `18f6812`) (bench-20261120T133722Z), logged; provisional run marked superseded | Speed varied 23–44 % between runs (background load); detections identical. Use repeated runs for any final speed figure | 1.4.3 |
 | 2026-11-20 | repo | README rewritten for current state; first commit `0411799` (was `f1b56aa`); pushed to public GitHub repo; D3 changed to public | Benchmark run bench-20261120T133002Z predates the commit; re-run from committed code before citing | 1.4.3 |

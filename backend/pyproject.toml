@@ -15,6 +15,7 @@ dependencies = [
     "onnxruntime>=1.32.0",
     "numpy>=2.5.5",
     "opencv-python-headless>=5.1.0.95",
+    "shapely>=2.2.0",
 ]
 
 [dependency-groups]
@@ -59,8 +60,8 @@ plugins = ["pydantic.mypy"]
 files = ["crowdcast", "tools", "tests"]
 
 [[tool.mypy.overrides]]
-# onnxruntime ships no type information.
-module = ["onnxruntime", "onnxruntime.*"]
+# onnxruntime and shapely ship no type information.
+module = ["onnxruntime", "onnxruntime.*", "shapely", "shapely.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------- pytest
