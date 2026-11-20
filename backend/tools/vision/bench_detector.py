@@ -29,6 +29,8 @@ import onnxruntime as ort
 
 from crowdcast.common.config import REPO_ROOT
 from crowdcast.common.time import utc_now
+from crowdcast.vision.interfaces import PersonDetector
+from crowdcast.vision.tiling import TiledDetector
 from crowdcast.vision.yolox_onnx import Preprocessing, YoloxOnnxDetector
 from tools.vision.fetch_models import MODEL_DIR, load_manifest, sha256_of
 
@@ -40,6 +42,8 @@ COUNT_SCORE = 0.5  # score used only for the descriptive persons-per-frame figur
 class ModelResult:
     model: str
     input_px: int
+    tiled: bool
+    runs_per_frame: int  # detector runs per frame (tiles + full-frame pass, or 1)
     frames_timed: int
     detect_ms_median: float
     detect_ms_p90: float
@@ -80,9 +84,14 @@ def git_commit() -> str:
 
 
 def bench_model(
-    name: str, video: Path, step: int, preprocessing: Preprocessing, threads: int | None
+    name: str,
+    video: Path,
+    step: int,
+    preprocessing: Preprocessing,
+    threads: int | None,
+    tile_overlap: float | None = None,
 ) -> ModelResult:
-    detector = YoloxOnnxDetector(
+    base = YoloxOnnxDetector(
         MODEL_DIR / f"{name}.onnx",
         preprocessing=preprocessing,
         score_threshold=COUNT_SCORE,
@@ -92,6 +101,14 @@ def bench_model(
     if not cap.isOpened():
         raise SystemExit(f"cannot open {video}")
     fps = cap.get(cv2.CAP_PROP_FPS)
+    frame_hw = (int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+    detector: PersonDetector = base
+    runs = 1
+    if tile_overlap is not None:
+        # Tiles the size of the model input, so each tile is hardly rescaled (see tiling.py).
+        tiled = TiledDetector(base, tile=base.input_hw[0], overlap=tile_overlap)
+        runs = tiled.runs_per_frame(frame_hw)
+        detector = tiled
     times_ms: list[float] = []
     persons: list[int] = []
     index = 0
@@ -119,7 +136,9 @@ def bench_model(
     median, p90, mean = summarize_ms(times_ms)
     return ModelResult(
         model=name,
-        input_px=detector.input_hw[0],
+        input_px=base.input_hw[0],
+        tiled=tile_overlap is not None,
+        runs_per_frame=runs,
         frames_timed=len(times_ms),
         detect_ms_median=round(median, 2),
         detect_ms_p90=round(p90, 2),
@@ -138,6 +157,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--models", nargs="*", default=["yolox_nano", "yolox_tiny", "yolox_s"])
     parser.add_argument("--sample-fps", type=float, default=5.0)
     parser.add_argument("--threads", type=int, default=None, help="ORT intra-op threads")
+    parser.add_argument(
+        "--tiled",
+        action="store_true",
+        help="also benchmark tiled detection (tiles = model input size, plus a full-frame pass)",
+    )
+    parser.add_argument("--tile-overlap", type=float, default=0.2)
+    parser.add_argument("--task", default="1.4.2", help="WORKFLOW task id recorded in the run")
     parser.add_argument("--out", type=Path, default=REPO_ROOT / "runs" / "bench")
     args = parser.parse_args(argv)
 
@@ -153,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     preprocessing = Preprocessing(manifest["preprocessing"])
     run_id = utc_now().strftime("%Y%m%dT%H%M%SZ")
     config = {
-        "task": "1.4.2",
+        "task": args.task,
         "video": args.video.name,
         "video_sha256": sha256_of(args.video),
         "video_resolution": f"{width}x{height}",
@@ -163,6 +189,7 @@ def main(argv: list[str] | None = None) -> int:
         "preprocessing": preprocessing.value,
         "warmup_frames": WARMUP,
         "ort_intra_op_threads": args.threads or "default",
+        "tile_overlap": args.tile_overlap if args.tiled else None,
         "model_sha256": {m: manifest["models"][m]["sha256"] for m in args.models},
     }
     environment = {
@@ -176,15 +203,19 @@ def main(argv: list[str] | None = None) -> int:
     }
     print(f"run {run_id}: {args.video.name} {width}x{height} @ {src_fps:.2f} fps, every {step}th")
 
+    variants: list[float | None] = [None, args.tile_overlap] if args.tiled else [None]
     results = []
     for name in args.models:
-        r = bench_model(name, args.video, step, preprocessing, args.threads)
-        results.append(r)
-        print(
-            f"{r.model:10s} {r.input_px}px  median {r.detect_ms_median:7.1f} ms  "
-            f"p90 {r.detect_ms_p90:7.1f} ms  {r.detector_fps:6.1f} FPS  "
-            f"RTF {r.realtime_factor:5.2f}  persons/frame {r.persons_per_frame_mean:5.1f}"
-        )
+        for overlap in variants:
+            r = bench_model(name, args.video, step, preprocessing, args.threads, overlap)
+            results.append(r)
+            label = r.model + ("+tiles" if r.tiled else "")
+            print(
+                f"{label:16s} {r.input_px}px x{r.runs_per_frame:<2d} "
+                f"median {r.detect_ms_median:7.1f} ms  p90 {r.detect_ms_p90:7.1f} ms  "
+                f"{r.detector_fps:6.1f} FPS  RTF {r.realtime_factor:5.2f}  "
+                f"persons/frame {r.persons_per_frame_mean:5.1f}"
+            )
 
     run_dir = args.out / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
