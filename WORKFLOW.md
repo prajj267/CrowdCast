@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 3 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 3.3.1–3.3.6 (CROWDSIM core)
+**Next task:** 3.4.2 (occupancy plot, SYNTHETIC label)
 
 ---
 
@@ -157,15 +157,15 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 3.2.1 Design note `backend/tools/crowdsim/DESIGN.md`: parameters, ranges and seeds; placeholder values clearly labelled
 
 ### 3.3 CROWDSIM core ([12 §5.1](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md))
-- [ ] 3.3.1 Arrivals (non-homogeneous Poisson) and agent state; tick δ = 10 s
-- [ ] 3.3.2 Destination choice (multinomial logit: attraction, distance, crowding)
-- [ ] 3.3.3 Movement along shortest paths with edge capacity, queueing and spillback
-- [ ] 3.3.4 Speed–density relation and departures (exit wave)
-- [ ] 3.3.5 Schedule perturbation: start offset U(−5, +10) min, popularity LogNormal(0, 0.3), 5 % pop-up events
-- [ ] 3.3.6 Per-minute output to Parquet (true N, flows, speed, published and actual schedule) per [12 §5.2, §6](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md)
+- [x] 3.3.1 Arrivals (non-homogeneous Poisson) and agent state; tick δ = 10 s
+- [x] 3.3.2 Destination choice (multinomial logit: attraction, distance, crowding)
+- [x] 3.3.3 Movement along shortest paths with edge capacity, queueing and spillback
+- [x] 3.3.4 Speed–density relation and departures (exit wave)
+- [x] 3.3.5 Schedule perturbation: start offset U(−5, +10) min, popularity LogNormal(0, 0.3), 5 % pop-up events
+- [x] 3.3.6 Per-minute output to Parquet (true N, flows, speed, published and actual schedule) per [12 §5.2, §6](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md)
 
 ### 3.4 Validity and replay
-- [ ] 3.4.1 Unit test: venue-level conservation holds exactly ([12 §5.5](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md))
+- [x] 3.4.1 Unit test: venue-level conservation holds exactly ([12 §5.5](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md))
 - [ ] 3.4.2 Plot occupancy profiles for one event and check them by eye; save the plot under `reports/figures/` (SYNTHETIC label on the figure)
 - [ ] 3.4.3 Replay client: posts minute buckets to the ingestion API at an adjustable speed-up, with `data_origin = SYNTHETIC`
 
@@ -333,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 3.3.1–3.3.6, 3.4.1 | CROWDSIM core (`tools/crowdsim/`: params, schedule perturbation, agent loop with logit choice, capacity queues, spillback, speed–density, exit wave; Parquet + manifest output; CLI); 13 tests incl. exact conservation (TC-GR-04) for regimes A and B, determinism, spillback, perturbation ranges; 7-h V1 event in ≈ 1–1.5 s; `pandas`, `pyarrow` (+ `pandas-stubs` dev) added | Bug found by tests and fixed: agents queued towards a jammed zone at closing time never left (gridlock) → at closing all queued agents re-route to an exit. With regime A placeholders the V1 corridor C1 reaches its jam limit (750) at peak: a real bottleneck under these illustrative parameters | 3.4.2 |
 | 2026-11-20 | 3.2.1 | `tools/crowdsim/DESIGN.md` + `configs/crowdsim/regime_a.yaml` / `regime_b.yaml`: every value tagged [DOC] or [PH] placeholder; bucket convention for exact conservation; seeds from master 2027 | Interpretations recorded: pop-up 5 % per event-hour (unit unstated in doc 12); agents counted in zones, never on edges; arrivals follow the published schedule, choices the actual one | 3.3 |
 | 2026-11-20 | 3.1.1, 3.1.2 | Ingestion contract: `ingestion/validation.py` (pure batch + row rules), `repository.upsert_observations` (ON CONFLICT, xmax insert/update count), `POST /api/crowd/observations`; 12 API tests (partial rejection with reasons, upsert, origin and status guards, limits) | No ADMIN (D7) → stricter SYNTHETIC/back-fill rules; future check REAL-only because replays use event time; `source` not stored — all in doc 14 §6 (contract change) | 3.2.1 |
 | 2026-11-20 | 2.3.3, 2.3.4 | Read API: venue, zones (§3.6 shape), connections, graph/validate, events list (keyset cursor) + detail, schedule; `PATCH` status PLANNED→LIVE→ENDED (graph check, 409/422, audited); `storage/repository.py`, `api/schemas.py`, routers; `VenueGraph.from_connections` for DB rows; OpenAPI at `/api/docs`; 14 API tests; doc 14 → v0.2 (§6 amendments, contract change) | **Phase 2 exit met** (8 zones loaded; zones endpoint returns them; invalid graph rejected). Create endpoints not built (YAML import instead; deviation logged) | 3.1.1 |

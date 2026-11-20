@@ -17,6 +17,8 @@ dependencies = [
     "opencv-python-headless>=5.1.0.95",
     "shapely>=2.2.0",
     "networkx>=3.7",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
 ]
 
 [dependency-groups]
@@ -28,6 +30,7 @@ dev = [
     "types-pyyaml>=6.0",
     "types-networkx>=3.6.1.20261119",
     "httpx>=0.28.1",
+    "pandas-stubs>=3.1.0.261029",
 ]
 
 [build-system]
