@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | Proposed; no data collected yet |
 
 ---
@@ -215,6 +215,37 @@ schedule:
 
 Errors: unknown keys; naive times; event or item ending before it starts; event longer than 24 h; item outside the event window; attendance < 0; weight outside 0–1 or with more than 2 decimals; a `zone` not present in the venue file (checked when the event is matched to its venue).
 
+### 6.3 Camera YAML (format version 1)
+
+Implemented by `backend/crowdcast/venue_graph/camera_config.py`; files in `configs/cameras/`. One file per camera. Pixel coordinates refer to the video's own frame size. The video itself is never committed (git-ignored `videos/`).
+
+```yaml
+format_version: 1
+camera:
+  code: CAM1                       # ^[A-Z0-9_]{1,16}$
+  venue: v1                        # stem of a file in configs/venues/
+  source: videos/public/clip.mp4   # path relative to the repo root
+  recording_start: 2026-11-01T10:00:00Z   # EVENT time of frame 0 (frame i = start + i / fps)
+  sample_fps: 5                    # 0 < x <= 30; doc 09 §3 default 5
+  image_width: 1920
+  image_height: 1080
+  detector: yolox_s                # yolox_nano | yolox_tiny | yolox_s (default yolox_s)
+  tiled: true                      # tiled detection for small people (WORKFLOW 1.4.3)
+regions:                           # zone areas visible in this camera
+  - zone: C1                       # zone code of the venue
+    polygon_px: [[0, 0], [900, 0], [900, 1000], [0, 1000]]   # simple polygon inside the image
+    coverage_fraction: 1.0         # κ in (0, 1]: visible share of the zone's usable area (09 §6.1)
+    primary: true                  # at most one primary region per zone (09 §8)
+lines:                             # counting lines (09 §6.2)
+  - from: C1                       # a connection of the venue graph (either orientation; OUTSIDE allowed)
+    to: MS
+    p1: [950, 0]
+    p2: [950, 1080]
+    positive_side: MS              # crossing towards this side = entering this zone
+```
+
+Errors: unknown keys; naive `recording_start`; self-intersecting polygons; points outside the image; two primary regions for one zone; a line whose `positive_side` is not one of its ends; and (when checked against the venue) unknown zones or a line on a connection the venue does not have.
+
 ## 7. Data labelling summary
 
 | Label | Meaning | Allowed uses |
@@ -227,5 +258,6 @@ Errors: unknown keys; naive times; event or item ending before it starts; event 
 
 | Version | Date | Change |
 |---|---|---|
+| 0.4 | 2026-11-21 | §6.3 added: camera YAML format v1 (event-time start, regions with coverage and primary flag, counting lines on venue connections) — WORKFLOW 6.1.2 |
 | 0.3 | 2026-11-20 | §6.2 added: event + published-schedule YAML format v1 (UTC conversion, event-window and venue-zone checks) — WORKFLOW 2.1.3 |
 | 0.2 | 2026-11-20 | §6.1 added: full venue YAML format v1 (`format_version`, `illustrative` flag, field limits, derived entry/exit flags, load-time rules) — WORKFLOW 2.1.1 |

@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 6 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 6.1.1 (Phase 6 — CV pipeline)
+**Next task:** 6.2.2 (ByteTrack tracker; 6.2.1 detector interface already exists)
 
 ---
 
@@ -232,8 +232,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ## Phase 6 — CV pipeline on CPU (M1–M3, T2.7, T3.4)
 
 ### 6.1 Video input (M1)
-- [ ] 6.1.1 `FrameSource` for video files with configurable frame sampling and a configured start time (event time, not wall-clock)
-- [ ] 6.1.2 Camera YAML: source file, start offset, regions (polygons per zone), counting lines
+- [x] 6.1.1 `FrameSource` for video files with configurable frame sampling and a configured start time (event time, not wall-clock)
+- [x] 6.1.2 Camera YAML: source file, start offset, regions (polygons per zone), counting lines
 
 ### 6.2 Detection and tracking (M2)
 - [ ] 6.2.1 `Detector` interface wrapping YOLOX (ONNX Runtime, CPU); person class only
@@ -335,6 +335,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 6.1.1, 6.1.2 | `vision/frames.py` FrameSource (sampled frames stamped with event time = start + i/fps, in memory only); camera YAML v1 `venue_graph/camera_config.py` (regions with κ + primary, counting lines on venue connections, checked against the venue); doc 12 → v0.4 §6.3 (contract change); 9 tests (generated clip, no people) | ByteTrack decision: implement the algorithm in-house (~150 lines, scipy assignment) instead of `supervision` (MIT, but 9 extra runtime deps incl. PyAV/matplotlib) — deviation logged with 6.2.2 | 6.2.2 |
 | 2026-11-21 | accelerator check | User pointed out the NPU; iGPU (DirectML) benchmarked first: detector `device` option + `compare_devices` tool; identical detections, no meaningful speed-up for YOLOX-s + tiles → CPU stays default (logged) | NPU (Ryzen AI, needs INT8 quantisation + vendor stack) not tried: an extension, only with user go-ahead after the CPU pipeline is measured | 6.1.1 |
 | 2026-11-21 | 5.3.1–5.3.4 | `forecasting/xgb.py` (3-quantile booster per horizon, inverse transform + sorted quantiles), `tools/training/{dataset,train}.py` (validation-only metrics, manifest, registry), cycle uses the active model (cold start < 15 min, family check, any failure → B0, logged), `GET/POST /api/models…/activate`; xgboost + scikit-learn added; A4 model 447 trained on clean commit `9ba4377` and activated. **Phase 5 exit met** on the hand-written example event: FC PREDICTED 18 min before CURRENT; C1/WC release spikes not anticipated (logged as a demo, n = 1) | First training run recorded a dirty tree (edits during the run) → superseded; train.py now records the commit at start and refuses dirty trees. Validation-only numbers in EXPERIMENT_LOG; h5/h15 hit the 2000-round cap; P10–P90 under-covers at 30 min (0.751) — tuning + conformal in Phase 7 | 6.1.1 |
 | 2026-11-21 | 5.2.3 | V2 (10 zones) and V3 (12 zones) venue files (layouts invented from the doc 12 §5.4 descriptions, illustrative); `tools/crowdsim/generate.py` (DESIGN §9 placeholders, per-event seeds); 180 SYNTHETIC events simulated in 5.4 min (17 MB, git-ignored; every event empties); `configs/splits.json` frozen and committed BEFORE any training code: train 84 / validation 18 / test_in_venue 18 / test_new_venue 60 (seed 2027); 3 tests (disjoint, sizes, V3 held out, reproducible from the seed) | V3 needed a 12th zone to match the stated count (6 + 2 + 2 + food = 11): a facilities zone was added | 5.3.1 |
