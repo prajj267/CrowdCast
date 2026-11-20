@@ -15,12 +15,14 @@ function onset(a: Alert): string {
   return a.predicted_onset ?? a.opened_at;
 }
 
-function relative(iso: string, asOf: string | null | undefined): string {
-  if (!asOf) return new Date(iso).toISOString().slice(11, 16);
-  const min = Math.round((Date.parse(iso) - Date.parse(asOf)) / 60_000);
-  if (min > 0) return `in ${min} min`;
-  if (min === 0) return "now";
-  return `${-min} min ago`;
+function hhmm(iso: string): string {
+  return new Date(iso).toISOString().slice(11, 16);
+}
+
+/** "in 12 min" while the onset is ahead of the event clock, "since 13:03" once it has passed. */
+function when(iso: string, asOf: string | null | undefined): string {
+  const min = asOf ? Math.round((Date.parse(iso) - Date.parse(asOf)) / 60_000) : 0;
+  return min > 0 ? `in ${min} min` : `since ${hhmm(iso)}`;
 }
 
 export function AlertList({
@@ -65,11 +67,15 @@ export function AlertList({
             <span>
               <span className="font-medium">{a.zone_code}</span>{" "}
               {a.alert_type === "PREDICTED"
-                ? `forecast ${a.level.toLowerCase()} ${relative(onset(a), asOf)}`
-                : `${a.level.toLowerCase()} now`}
+                ? `forecast ${a.level.toLowerCase()} ${when(onset(a), asOf)}`
+                : `${a.level.toLowerCase()} ${when(a.opened_at, asOf)}`}
               <span className="block text-xs text-muted">
-                {a.message}
-                {a.status === "ACKNOWLEDGED" && " · acknowledged"}
+                Opened {hhmm(a.opened_at)}
+                {a.trigger_value != null && ` at ${Math.round(a.trigger_value * 100)}% of capacity`}
+                {a.alert_type === "PREDICTED" &&
+                  a.horizon_min != null &&
+                  `, ${a.horizon_min} min ahead`}
+                {a.status === "ACKNOWLEDGED" && ". Acknowledged"}
               </span>
             </span>
           </p>

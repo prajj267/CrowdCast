@@ -1,10 +1,19 @@
 /**
- * Live monitoring (doc 15 Page 4): zone cards sorted by risk and the active alerts. The venue map
- * joins the left column in task 4.5.5.
+ * Live monitoring (doc 15 Page 4): venue map and active alerts side by side, zone cards sorted by
+ * risk below.
  */
 import { useParams } from "react-router-dom";
-import { useAlerts, useCurrent, useEvent, usePredictions, useZones } from "../../hooks/queries";
+import {
+  useAlerts,
+  useConnections,
+  useCurrent,
+  useEvent,
+  usePredictions,
+  useVenue,
+  useZones,
+} from "../../hooks/queries";
 import { AlertList } from "./AlertList";
+import { VenueMap } from "./VenueMap";
 import { ZoneCard } from "./ZoneCard";
 
 export function LivePage() {
@@ -14,6 +23,8 @@ export function LivePage() {
   const predictions = usePredictions(eventId);
   const alerts = useAlerts(eventId);
   const zones = useZones(event.data?.venue_id);
+  const venue = useVenue(event.data?.venue_id);
+  const connections = useConnections(event.data?.venue_id);
 
   if (current.isLoading) return <p className="text-muted">Loading the latest counts…</p>;
   if (!current.data) return <p>Cannot load the latest counts. Check that the API is running.</p>;
@@ -48,21 +59,34 @@ export function LivePage() {
         </p>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
-        <section
-          aria-label="Zones"
-          className="grid content-start gap-3 sm:grid-cols-2 2xl:grid-cols-3"
-        >
-          {sorted.map((z) => (
-            <ZoneCard
-              key={z.zone_id}
-              zone={z}
-              thresholds={thresholdsBy.get(z.zone_id)}
-              forecasts={forecastsBy.get(z.zone_id) ?? []}
-              showFallback={!allFallback}
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-4">
+          {venue.data && zones.data ? (
+            <VenueMap
+              venue={venue.data}
+              zones={zones.data.zones}
+              connections={connections.data?.connections ?? []}
+              current={current.data.zones}
+              forecasts={forecastsBy}
             />
-          ))}
-        </section>
+          ) : (
+            <div
+              className="aspect-[3/2] rounded-md border border-line bg-surface"
+              aria-hidden="true"
+            />
+          )}
+          <section aria-label="Zones" className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+            {sorted.map((z) => (
+              <ZoneCard
+                key={z.zone_id}
+                zone={z}
+                thresholds={thresholdsBy.get(z.zone_id)}
+                forecasts={forecastsBy.get(z.zone_id) ?? []}
+                showFallback={!allFallback}
+              />
+            ))}
+          </section>
+        </div>
         <section aria-label="Active alerts" className="min-w-0">
           <h2 className="mb-2 text-base font-semibold">Active alerts</h2>
           <AlertList

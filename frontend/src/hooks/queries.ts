@@ -72,3 +72,31 @@ export function useZones(venueId: number | undefined) {
     staleTime: 5 * 60_000,
   });
 }
+
+export function useVenue(venueId: number | undefined) {
+  return useQuery({
+    queryKey: ["venue", venueId],
+    enabled: venueId !== undefined,
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/venues/{venue_id}", {
+          params: { path: { venue_id: venueId as number } },
+        }),
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useConnections(venueId: number | undefined) {
+  return useQuery({
+    queryKey: ["connections", venueId],
+    enabled: venueId !== undefined,
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/venues/{venue_id}/connections", {
+          params: { path: { venue_id: venueId as number } },
+        }),
+      ),
+    staleTime: 5 * 60_000,
+  });
+}

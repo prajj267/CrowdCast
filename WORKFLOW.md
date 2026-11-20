@@ -18,16 +18,16 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 1 | Foundations (repo, env, DB) | 1 | 3 | MS1 | Done (MS1) |
 | 2 | Venue graph and configuration | 1–2 | 3 | — | Done |
 | 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | Done |
-| 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | In progress |
-| 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Not started |
+| 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | Done (MS2) |
+| 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | In progress |
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Not started |
 | 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | Not started |
 | 8 | Dashboard completion (React) | 8–9 | 6 | — | Not started |
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | Not started |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 4 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 4.5.5 (VenueMap)
+**Current focus:** Phase 5 (Phase 0 still open: doc updates 0.3.x)
+**Next task:** 5.1.1 (Phase 5 — forecasting core)
 
 ---
 
@@ -198,7 +198,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 4.5.2 Typed API client generated from FastAPI's OpenAPI schema (e.g. openapi-typescript), with a regeneration script; Vite dev proxy to the API
 - [x] 4.5.3 Design tokens from [15 §2.1](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md) (level colours + icons, per [11 §4](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md)) and the app shell (layout, navigation, event selector)
 - [x] 4.5.4 Live page: ZoneCards (occupancy, ratio, level) and AlertList, polling with TanStack Query
-- [ ] 4.5.5 VenueMap: SVG floor plan from zone polygons in the venue YAML, filled by level
+- [x] 4.5.5 VenueMap: SVG floor plan from zone polygons in the venue YAML, filled by level
 
 **Exit (MS2):** replaying a synthetic event changes zone colours every minute; persistence predictions are stored; a surge opens a CURRENT alert.
 
@@ -333,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 4.5.5, MS2 | `VenueMap` (SVG polygons from the venue file, filled by level now / +5 / +15 / +30, connections drawn, one-way dashed, hatched no-data, aria-labels + tooltips); Live layout fixed so it does not shift while queries load; alert wording built from fields in event time. **MS2 check done in the browser:** fresh synthetic event replayed at 120× with `run_predictions --follow`: zone colours changed (FC High 12:57 → Critical 13:17), persistence predictions stored, CURRENT + PREDICTED alerts opened; screenshot `reports/figures/ms2_live_page_synthetic_replay.png` | **Phase 4 exit met (MS2).** Density mode and flow-weighted edges deferred to Phase 8 (no per-edge flows in the API). At high replay speed panels refresh at different moments (alerts can lead cards by a few event-minutes); fine at real time | 5.1.1 |
 | 2026-11-21 | 4.5.4 | Live page: `ZoneCard` (occupancy/capacity, ratio bar with the zone's threshold ticks, level badge, +5/+15/+30 forecast shapes, flows, stale/no-data hatching, low-confidence note) sorted by max risk score; `AlertList` (level then onset, times relative to the event clock, acknowledge/resolve with query invalidation); fallback and connection-lost banners; checked in the browser | 5-min trend arrow left out (needs history; the forecast strip shows direction instead). Per-card fallback note hidden when the page banner already says all forecasts are fallback | 4.5.5 |
 | 2026-11-21 | 4.5.3 | `theme/tokens.css` (doc 15 tokens, light + dark via prefers-color-scheme, mapped into Tailwind), level language (`levels.ts`, `LevelBadge`: colour + shape + word), self-hosted Inter, query hooks (5 s / 10 s refresh, paused when hidden), app shell (event selector, status, event clock from `as_of`, data origin, hatched SYNTHETIC banner, 5-page nav), routes with placeholder pages; checked in the browser (screenshots) | Contrast computed: all level colours ≥ 3.4:1 on surfaces → marks only, text uses text tokens; light `--unknown` failed on `--bg` (2.88) → #808A9C (doc 15 updated). Fixed: event selector lost the current page; sidebar not full height | 4.5.4 |
 | 2026-11-21 | 4.5.1, 4.5.2 | `frontend/`: Vite 8 + React 18.3 + TypeScript 5.9 (strict) + Tailwind 4 + TanStack Query 5 + React Router 6, ESLint 10 + Prettier; dev proxy `/api` → 127.0.0.1:8000; `tools/export_openapi.py` + `npm run gen:api` (openapi-typescript) + `src/api/client.ts` (openapi-fetch, error envelope → `ApiError`); `scripts/check.ps1` now also runs frontend format/lint/build | TypeScript pinned to 5.9: TS 7 is not yet supported by typescript-eslint (< 6.1) and openapi-typescript (^5). node_modules ≈ 175 MB (git-ignored) | 4.5.3 |
