@@ -17,8 +17,8 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 0 | Decisions, approvals, scope update | 0 | 2 | MS0 | Not started |
 | 1 | Foundations (repo, env, DB) | 1 | 3 | MS1 | Done (MS1) |
 | 2 | Venue graph and configuration | 1–2 | 3 | — | Done |
-| 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | In progress |
-| 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | Not started |
+| 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | Done |
+| 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | In progress |
 | 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Not started |
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Not started |
 | 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | Not started |
@@ -26,8 +26,8 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | Not started |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 3 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 3.4.3 (replay client → ingestion API)
+**Current focus:** Phase 4 (Phase 0 still open: doc updates 0.3.x)
+**Next task:** 4.1.1 (baselines B0–B3)
 
 ---
 
@@ -167,7 +167,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ### 3.4 Validity and replay
 - [x] 3.4.1 Unit test: venue-level conservation holds exactly ([12 §5.5](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md))
 - [x] 3.4.2 Plot occupancy profiles for one event and check them by eye; save the plot under `reports/figures/` (SYNTHETIC label on the figure)
-- [ ] 3.4.3 Replay client: posts minute buckets to the ingestion API at an adjustable speed-up, with `data_origin = SYNTHETIC`
+- [x] 3.4.3 Replay client: posts minute buckets to the ingestion API at an adjustable speed-up, with `data_origin = SYNTHETIC`
 
 **Exit:** a 6-hour V1 event generates in seconds and its replay appears in `crowd_observations`.
 
@@ -333,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 3.4.3 | `tools/crowdsim/replay.py` (stdlib HTTP, adjustable speed-up, batches ≤ 1,000 rows) + end-to-end DB test; V1 run replayed into dev event 32 through the live API: 3,376 zone-minutes, 0 rejected, 2.0 s | **Phase 3 exit met.** Test isolation fix: a schema test read every observation in the table, broke once the dev DB held replayed rows | 4.1.1 |
 | 2026-11-20 | 3.4.2 | `tools/crowdsim/plot.py`; figure `reports/figures/crowdsim_v1_spring_fest_day1_regimea_seed2027-0.png` (SYNTHETIC, regime A placeholders, commit 527119b) | Eye check found a design flaw, fixed: "stay until the item ends" made exhibition visitors stay 5 h → only shows hold visitors (DESIGN §7). Remaining, kept on purpose (not tuned away): food court at its jam limit through the lunch window = demand above capacity under these placeholders | 3.4.3 |
 | 2026-11-20 | 3.3.1–3.3.6, 3.4.1 | CROWDSIM core (`tools/crowdsim/`: params, schedule perturbation, agent loop with logit choice, capacity queues, spillback, speed–density, exit wave; Parquet + manifest output; CLI); 13 tests incl. exact conservation (TC-GR-04) for regimes A and B, determinism, spillback, perturbation ranges; 7-h V1 event in ≈ 1–1.5 s; `pandas`, `pyarrow` (+ `pandas-stubs` dev) added | Bug found by tests and fixed: agents queued towards a jammed zone at closing time never left (gridlock) → at closing all queued agents re-route to an exit. With regime A placeholders the V1 corridor C1 reaches its jam limit (750) at peak: a real bottleneck under these illustrative parameters | 3.4.2 |
 | 2026-11-20 | 3.2.1 | `tools/crowdsim/DESIGN.md` + `configs/crowdsim/regime_a.yaml` / `regime_b.yaml`: every value tagged [DOC] or [PH] placeholder; bucket convention for exact conservation; seeds from master 2027 | Interpretations recorded: pop-up 5 % per event-hour (unit unstated in doc 12); agents counted in zones, never on edges; arrivals follow the published schedule, choices the actual one | 3.3 |

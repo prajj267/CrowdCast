@@ -133,7 +133,7 @@ def test_valid_records_insert_and_read_back_in_utc(
 ) -> None:
     db_session.add_all([observation(world), prediction(world)])
     db_session.flush()
-    obs = db_session.query(CrowdObservation).one()
+    obs = db_session.query(CrowdObservation).filter_by(event_id=world["event"]).one()
     assert obs.bucket_start == T0
     assert obs.bucket_start.utcoffset() == timedelta(0)
     assert obs.data_origin is DataOrigin.SYNTHETIC
