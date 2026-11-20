@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 5 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 5.2.3 (event-level splits) — needs the randomised CROWDSIM event generator and a decision on dataset size
+**Next task:** 5.3.1 (XGBoost quantile models)
 
 ---
 
@@ -217,7 +217,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ### 5.2 Leakage protection
 - [x] 5.2.1 TC-ML-02: features from a truncated series equal features from the full series up to t
 - [x] 5.2.2 Test that the actual (realised) schedule never reaches the features
-- [ ] 5.2.3 Splits by event only; a test fails if one event appears in two splits
+- [x] 5.2.3 Splits by event only; a test fails if one event appears in two splits
 
 ### 5.3 XGBoost and registry
 - [ ] 5.3.1 XGBoost quantile regression (P10/P50/P90), direct multi-horizon; sort quantiles after the inverse transform
@@ -335,6 +335,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 5.2.3 | V2 (10 zones) and V3 (12 zones) venue files (layouts invented from the doc 12 §5.4 descriptions, illustrative); `tools/crowdsim/generate.py` (DESIGN §9 placeholders, per-event seeds); 180 SYNTHETIC events simulated in 5.4 min (17 MB, git-ignored; every event empties); `configs/splits.json` frozen and committed BEFORE any training code: train 84 / validation 18 / test_in_venue 18 / test_new_venue 60 (seed 2027); 3 tests (disjoint, sizes, V3 held out, reproducible from the seed) | V3 needed a 12th zone to match the stated count (6 + 2 + 2 + food = 11): a facilities zone was added | 5.3.1 |
 | 2026-11-21 | 5.1.1–5.1.4, 5.2.1, 5.2.2 | `forecasting/features.py`: one causal `build_features` (F_HIST, F_FLOW, F_SCHED, F_NBR; configs A1–A4, A4_NONBR), `add_target` (y = ΔN/C, tail dropped); `forecasting/sources.py` (venue info, published schedule, training-only outflow shares); 15 tests incl. TC-ML-02 for every config, 60-min online window = whole-event row at t = 59/70/200/300, tampering with the future changes nothing, realised schedule never an input | Test review caught a weak check (window compared with a shifted history, hiding a fused-filter mismatch) → fixed by a fixed-look-back filter. Two deviations logged | 5.2.3 |
 | 2026-11-21 | 4.5.5, MS2 | `VenueMap` (SVG polygons from the venue file, filled by level now / +5 / +15 / +30, connections drawn, one-way dashed, hatched no-data, aria-labels + tooltips); Live layout fixed so it does not shift while queries load; alert wording built from fields in event time. **MS2 check done in the browser:** fresh synthetic event replayed at 120× with `run_predictions --follow`: zone colours changed (FC High 12:57 → Critical 13:17), persistence predictions stored, CURRENT + PREDICTED alerts opened; screenshot `reports/figures/ms2_live_page_synthetic_replay.png` | **Phase 4 exit met (MS2).** Density mode and flow-weighted edges deferred to Phase 8 (no per-edge flows in the API). At high replay speed panels refresh at different moments (alerts can lead cards by a few event-minutes); fine at real time | 5.1.1 |
 | 2026-11-21 | 4.5.4 | Live page: `ZoneCard` (occupancy/capacity, ratio bar with the zone's threshold ticks, level badge, +5/+15/+30 forecast shapes, flows, stale/no-data hatching, low-confidence note) sorted by max risk score; `AlertList` (level then onset, times relative to the event clock, acknowledge/resolve with query invalidation); fallback and connection-lost banners; checked in the browser | 5-min trend arrow left out (needs history; the forecast strip shows direction instead). Per-card fallback note hidden when the page banner already says all forecasts are fallback | 4.5.5 |

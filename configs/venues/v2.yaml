@@ -1,0 +1,53 @@
+# Reference topology V2 - concert / stadium (doc 12 §5.4: "radial concourse with 4 gates, 2 food
+# areas, arena", 10 zones). Format: doc 12 §6.1.
+#
+# ILLUSTRATIVE VALUES ONLY. Doc 12 fixes only the description and the zone count; the layout,
+# areas, capacities, widths and travel times below were invented for this file (WORKFLOW 5.2.3)
+# and are placeholders for simulation - not a real venue, not safety values.
+format_version: 1
+illustrative: true
+
+venue:
+  name: V2 Concert Arena (synthetic)
+  rho_plan: 2.0
+  plan_width: 1200
+  plan_height: 800
+
+zones:
+  - {code: AR, name: Arena, type: STAGE, area_m2: 4000, capacity: 6000,
+     polygon: [[400, 250], [800, 250], [800, 550], [400, 550]]}
+  - {code: CN, name: North Concourse, type: CORRIDOR, area_m2: 700, capacity: 900,
+     polygon: [[300, 130], [900, 130], [900, 230], [300, 230]]}
+  - {code: CE, name: East Concourse, type: CORRIDOR, area_m2: 700, capacity: 900,
+     polygon: [[820, 240], [920, 240], [920, 680], [820, 680]]}
+  - {code: CW, name: West Concourse, type: CORRIDOR, area_m2: 700, capacity: 900,
+     polygon: [[280, 240], [380, 240], [380, 680], [280, 680]]}
+  - {code: F1, name: East Food Hall, type: FOOD, area_m2: 600, capacity: 700,
+     polygon: [[940, 420], [1150, 420], [1150, 640], [940, 640]]}
+  - {code: F2, name: West Food Hall, type: FOOD, area_m2: 600, capacity: 700,
+     polygon: [[50, 420], [260, 420], [260, 640], [50, 640]]}
+  - {code: G1, name: North-West Gate, type: ENTRY_EXIT, area_m2: 250, capacity: 400,
+     polygon: [[300, 20], [500, 20], [500, 110], [300, 110]]}
+  - {code: G2, name: North-East Gate, type: ENTRY_EXIT, area_m2: 250, capacity: 400,
+     polygon: [[700, 20], [900, 20], [900, 110], [700, 110]]}
+  - {code: G3, name: East Gate, type: ENTRY_EXIT, area_m2: 250, capacity: 400,
+     polygon: [[940, 250], [1150, 250], [1150, 400], [940, 400]]}
+  - {code: G4, name: West Gate, type: ENTRY_EXIT, area_m2: 250, capacity: 400,
+     polygon: [[50, 250], [260, 250], [260, 400], [50, 400]]}
+
+connections:
+  - {from: OUTSIDE, to: G1, width_m: 10, travel_time_s: 20}
+  - {from: OUTSIDE, to: G2, width_m: 10, travel_time_s: 20}
+  - {from: OUTSIDE, to: G3, width_m: 8, travel_time_s: 20}
+  - {from: OUTSIDE, to: G4, width_m: 8, travel_time_s: 20}
+  - {from: G1, to: CN, width_m: 8, travel_time_s: 25}
+  - {from: G2, to: CN, width_m: 8, travel_time_s: 25}
+  - {from: G3, to: CE, width_m: 6, travel_time_s: 25}
+  - {from: G4, to: CW, width_m: 6, travel_time_s: 25}
+  - {from: CN, to: CE, width_m: 8, travel_time_s: 40}
+  - {from: CN, to: CW, width_m: 8, travel_time_s: 40}
+  - {from: CN, to: AR, width_m: 10, travel_time_s: 45}
+  - {from: CE, to: AR, width_m: 8, travel_time_s: 45}
+  - {from: CW, to: AR, width_m: 8, travel_time_s: 45}
+  - {from: CE, to: F1, width_m: 5, travel_time_s: 30}
+  - {from: CW, to: F2, width_m: 5, travel_time_s: 30}

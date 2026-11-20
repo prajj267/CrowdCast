@@ -1,0 +1,58 @@
+# Reference topology V3 - exhibition (doc 12 §5.4: "grid of 6 halls + 2 corridors + 2 gates +
+# food", 12 zones). HELD-OUT VENUE: its events are only ever used for the test-new-venue split.
+# Format: doc 12 §6.1.
+#
+# ILLUSTRATIVE VALUES ONLY. Doc 12 fixes the description and the zone count (6 + 2 + 2 + food =
+# 11, so a facilities zone is added to reach 12); the layout, areas, capacities, widths and
+# travel times were invented for this file (WORKFLOW 5.2.3) and are placeholders.
+format_version: 1
+illustrative: true
+
+venue:
+  name: V3 Exhibition Centre (synthetic)
+  rho_plan: 1.0
+  plan_width: 1200
+  plan_height: 800
+
+zones:
+  - {code: H1, name: Hall 1, type: EXHIBITION, area_m2: 900, capacity: 800,
+     polygon: [[200, 80], [450, 80], [450, 300], [200, 300]]}
+  - {code: H2, name: Hall 2, type: EXHIBITION, area_m2: 900, capacity: 800,
+     polygon: [[475, 80], [725, 80], [725, 300], [475, 300]]}
+  - {code: H3, name: Hall 3, type: EXHIBITION, area_m2: 900, capacity: 800,
+     polygon: [[750, 80], [1000, 80], [1000, 300], [750, 300]]}
+  - {code: H4, name: Hall 4, type: EXHIBITION, area_m2: 900, capacity: 800,
+     polygon: [[200, 500], [450, 500], [450, 720], [200, 720]]}
+  - {code: H5, name: Hall 5, type: EXHIBITION, area_m2: 900, capacity: 800,
+     polygon: [[475, 500], [725, 500], [725, 720], [475, 720]]}
+  - {code: H6, name: Hall 6, type: EXHIBITION, area_m2: 900, capacity: 800,
+     polygon: [[750, 500], [1000, 500], [1000, 720], [750, 720]]}
+  - {code: K1, name: North Corridor, type: CORRIDOR, area_m2: 500, capacity: 600,
+     polygon: [[200, 320], [1000, 320], [1000, 390], [200, 390]]}
+  - {code: K2, name: South Corridor, type: CORRIDOR, area_m2: 500, capacity: 600,
+     polygon: [[200, 410], [1000, 410], [1000, 480], [200, 480]]}
+  - {code: GA, name: West Gate, type: ENTRY_EXIT, area_m2: 300, capacity: 400,
+     polygon: [[40, 320], [180, 320], [180, 480], [40, 480]]}
+  - {code: GB, name: East Gate, type: ENTRY_EXIT, area_m2: 300, capacity: 400,
+     polygon: [[1020, 320], [1160, 320], [1160, 480], [1020, 480]]}
+  - {code: FD, name: Food Court, type: FOOD, area_m2: 700, capacity: 650,
+     polygon: [[1020, 500], [1160, 500], [1160, 720], [1020, 720]]}
+  - {code: WC, name: Facilities, type: FACILITY, area_m2: 120, capacity: 100,
+     polygon: [[40, 80], [180, 80], [180, 300], [40, 300]]}
+
+connections:
+  - {from: OUTSIDE, to: GA, width_m: 10, travel_time_s: 20}
+  - {from: OUTSIDE, to: GB, width_m: 10, travel_time_s: 20}
+  - {from: GA, to: K1, width_m: 6, travel_time_s: 20}
+  - {from: GA, to: K2, width_m: 6, travel_time_s: 20}
+  - {from: GB, to: K1, width_m: 6, travel_time_s: 20}
+  - {from: GB, to: K2, width_m: 6, travel_time_s: 20}
+  - {from: K1, to: K2, width_m: 4, travel_time_s: 15}
+  - {from: K1, to: H1, width_m: 5, travel_time_s: 30}
+  - {from: K1, to: H2, width_m: 5, travel_time_s: 30}
+  - {from: K1, to: H3, width_m: 5, travel_time_s: 30}
+  - {from: K2, to: H4, width_m: 5, travel_time_s: 30}
+  - {from: K2, to: H5, width_m: 5, travel_time_s: 30}
+  - {from: K2, to: H6, width_m: 5, travel_time_s: 30}
+  - {from: K2, to: FD, width_m: 5, travel_time_s: 25}
+  - {from: K1, to: WC, width_m: 3, travel_time_s: 20}
