@@ -11,7 +11,7 @@ database ids is the loader's job (task 2.3.1).
 from __future__ import annotations
 
 import math
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Literal
@@ -36,6 +36,24 @@ class IssueCode(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class Connection:
+    """One passage between two zones (or a zone and OUTSIDE), independent of its source."""
+
+    from_code: str
+    to_code: str
+    width_m: float
+    travel_time_s: float
+    bidirectional: bool = True
+
+
+def _directed(c: Connection) -> list[tuple[str, str]]:
+    edges = [(c.from_code, c.to_code)]
+    if c.bidirectional:
+        edges.append((c.to_code, c.from_code))
+    return edges
+
+
+@dataclass(frozen=True, slots=True)
 class GraphIssue:
     code: IssueCode
     severity: Severity
@@ -52,21 +70,34 @@ class InvalidVenueGraphError(ValueError):
 class VenueGraph:
     """Immutable directed graph of one venue."""
 
-    def __init__(self, config: VenueConfig) -> None:
+    def __init__(self, zone_codes: Sequence[str], connections: Sequence[Connection]) -> None:
+        """Build from zone codes and connections; prefer ``from_config`` / ``from_connections``."""
         g: nx.DiGraph[str] = nx.DiGraph()
         g.add_node(OUTSIDE)
-        g.add_nodes_from(z.code for z in config.zones)
-        for c in config.connections:
-            for src, dst in c.directed_edges():
+        g.add_nodes_from(zone_codes)
+        for c in connections:
+            for src, dst in _directed(c):
                 g.add_edge(src, dst, width_m=c.width_m, travel_time_s=c.travel_time_s)
         nx.freeze(g)  # in place: any later add/remove raises
         self._g: nx.DiGraph[str] = g
-        self._connections = [(c.from_, c.to) for c in config.connections]
-        self.zone_codes: tuple[str, ...] = tuple(z.code for z in config.zones)
+        self._connections = [(c.from_code, c.to_code) for c in connections]
+        self.zone_codes: tuple[str, ...] = tuple(zone_codes)
 
     @classmethod
     def from_config(cls, config: VenueConfig) -> VenueGraph:
-        return cls(config)
+        """From a parsed venue YAML file."""
+        conns = [
+            Connection(c.from_, c.to, c.width_m, c.travel_time_s, c.bidirectional)
+            for c in config.connections
+        ]
+        return cls([z.code for z in config.zones], conns)
+
+    @classmethod
+    def from_connections(
+        cls, zone_codes: Sequence[str], connections: Sequence[Connection]
+    ) -> VenueGraph:
+        """From stored rows (e.g. the database), with OUTSIDE as the code of the outside node."""
+        return cls(zone_codes, connections)
 
     # ------------------------------------------------------------------ structure
     def neighbours(self, code: str, direction: Literal["in", "out", "both"] = "both") -> list[str]:

@@ -4,6 +4,7 @@ The module also owns the configuration file formats (venue and event YAML, doc 1
 """
 
 from crowdcast.venue_graph.config import (
+    DEFAULT_THRESHOLDS,
     FORMAT_VERSION,
     OUTSIDE,
     ConnectionConfig,
@@ -20,6 +21,7 @@ from crowdcast.venue_graph.event_config import (
     load_event_config,
 )
 from crowdcast.venue_graph.graph import (
+    Connection,
     GraphIssue,
     InvalidVenueGraphError,
     IssueCode,
@@ -28,8 +30,10 @@ from crowdcast.venue_graph.graph import (
 )
 
 __all__ = [
+    "DEFAULT_THRESHOLDS",
     "FORMAT_VERSION",
     "OUTSIDE",
+    "Connection",
     "ConnectionConfig",
     "EventConfig",
     "EventInfo",

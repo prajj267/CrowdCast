@@ -107,7 +107,7 @@ Python lives in `backend/` (uv project, uv-managed CPython 3.12; `python-prefere
 | Format + autofix lint | `uv run ruff format . ; uv run ruff check --fix .` |
 | Fetch / verify YOLOX models (≈ 60 MB) | `uv run python -m tools.vision.fetch_models` |
 | Detector smoke test | `uv run python -m tools.vision.smoke_yolox --image ../data/samples/yolox_dog.jpg` |
-| Run the API (dev) | `uv run uvicorn crowdcast.api.app:app --reload` → http://127.0.0.1:8000/docs |
+| Run the API (dev) | `uv run uvicorn crowdcast.api.app:app --reload` → http://127.0.0.1:8000/api/docs |
 | Load venue / event config into the DB | `uv run python -m tools.load_config venue ../configs/venues/v1.yaml` then `... event ../configs/events/v1_spring_fest_day1.yaml` (refuses duplicates) |
 | Tests needing model files | `uv run pytest -m model` (skipped if `models/yolox/` is empty) |
 

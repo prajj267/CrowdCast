@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
+| Version | 0.2 (implementation amendments in §6) |
 | Style | REST over HTTPS, JSON, FastAPI (OpenAPI 3.1 generated at `/api/docs`) |
 | Base path | `/api` |
-| Auth | `Authorization: Bearer <JWT>` (users); `X-API-Key: <key>` (SERVICE) |
+| Auth | **None** in the solo scope (decision D7, WORKFLOW.md): no tokens, roles or users; role columns in §2 do not apply |
 
 ---
 
@@ -326,3 +326,21 @@ Response 200: `{ "model_version_id": 5, "is_active": true, "previous_active": 4 
 | `/api/auth/login` | 5 failures / 10 min / email+IP |
 | `/api/crowd/observations` | 1,000 rows per request; 60 requests/min per key |
 | Uploads | 5 MB |
+
+## 6. Implementation amendments (v0.2, 2026-11-20)
+
+Decisions taken while implementing WORKFLOW 2.3.2–2.3.4. Where this section and §1–§5 differ, this section wins.
+
+| Topic | v0.1 text | Implemented |
+|---|---|---|
+| Authentication (D7) | JWT + roles; 401/403/429 errors; `created_by` on events; 404 for unassigned operators | No auth. `/api/auth/*`, `/api/users*` and `/api/events/{id}/operators` are not built; 401/403/429 never returned; `created_by` removed from event responses |
+| Creating venues, zones, connections, events, schedule items | `POST` endpoints (§3.2, §3.5, §3.7) | Not built in the solo scope: configuration is loaded from YAML ([12 §6.1–6.2](12_DATASET_AND_DATA_COLLECTION.md)) with `tools/load_config.py`. Read endpoints only |
+| Extra error codes | — | `405 METHOD_NOT_ALLOWED`, `503 SERVICE_UNAVAILABLE` use the same envelope; every response (success or error) carries `X-Request-ID` equal to `error.request_id` |
+| `GET /api/health` (§3.16) | status code not stated | `200` with `status: "ok"` when the DB answers; **`503`** with `status: "error", db: "error"` when it does not. `last_prediction_cycle` = latest `predictions.issued_at`, `null` before any cycle |
+| `GET /api/venues/{id}/zones` (§3.6) | `neighbours` ids; `thresholds.source` | `neighbours.in/out` list **zone ids only**; the virtual outside node is not listed (use `is_entry` / `is_exit`). `thresholds.source` is `DEFAULT` (no override stored) or `ZONE` (≥ 1 override) |
+| `GET /api/venues/{id}/connections` | shape not given | `{venue_id, connections: [{connection_id, from_zone_id, to_zone_id, boundary_width_m, travel_time_s, bidirectional}]}`; `null` zone id = outside |
+| `GET /api/venues/{id}/graph/validate` | shape not given | `{venue_id, valid, issues: [{code, severity, subject, message}]}`; codes `ISOLATED`, `UNREACHABLE`, `NO_PATH_OUT` (ERROR), `NO_COUNTING_LINE` (WARNING, only once cameras are configured) |
+| `GET /api/events` | pagination per §1 | `{events: [...], next_cursor}`; newest first (by id); `limit` 1–500 (default 50); `cursor` is opaque — pass back the returned `next_cursor` |
+| `GET /api/events/{id}` (§3.3) | — | as specified, without `created_by`; `active_model` is `null` until a model is activated |
+| `PATCH /api/events/{id}` (§3.4) | 422 "with graph issues" | Body `{status}` only (other fields unknown → 422). Graph failure → `422 VALIDATION_ERROR`, message `venue graph is not valid`, `details[]` = `{field: <zone code or "venue">, issue: "<CODE>: <message>"}`. Each transition writes an `audit_log` row (`actor = USER`, `action = EVENT_STATUS`) |
+| `GET /api/events/{id}/schedule` | shape not given | `{event_id, items: [{item_id, zone_id, zone_code, title, category, start_time, end_time, expected_attendance, attraction_weight}]}` in start order; `zone_id`/`zone_code` `null` = venue-wide |

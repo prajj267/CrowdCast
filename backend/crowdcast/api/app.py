@@ -1,7 +1,7 @@
 """FastAPI application (WORKFLOW 2.3.2; doc 14).
 
 Run (from backend/):  uv run uvicorn crowdcast.api.app:app --reload
-OpenAPI docs: http://127.0.0.1:8000/docs
+OpenAPI docs: http://127.0.0.1:8000/api/docs
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import Engine
 
+from crowdcast.api import routes_events, routes_venues
 from crowdcast.api.errors import install_error_handlers
 from crowdcast.common.config import get_settings
 from crowdcast.storage.interfaces import check_database, get_engine
@@ -38,7 +39,13 @@ def engine_dependency() -> Engine:
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="CROWDCAST API", version=API_VERSION)
+    app = FastAPI(
+        title="CROWDCAST API",
+        version=API_VERSION,
+        docs_url="/api/docs",  # doc 14 header
+        openapi_url="/api/openapi.json",
+        redoc_url=None,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -58,6 +65,8 @@ def create_app() -> FastAPI:
         return response
 
     install_error_handlers(app)
+    app.include_router(routes_venues.router)
+    app.include_router(routes_events.router)
 
     @app.get("/api/health", response_model=Health, tags=["system"])
     def health(response: Response, engine: Annotated[Engine, Depends(engine_dependency)]) -> Health:

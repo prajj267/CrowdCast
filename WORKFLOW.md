@@ -16,8 +16,8 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 |---|---|---|---|---|---|
 | 0 | Decisions, approvals, scope update | 0 | 2 | MS0 | Not started |
 | 1 | Foundations (repo, env, DB) | 1 | 3 | MS1 | Done (MS1) |
-| 2 | Venue graph and configuration | 1–2 | 3 | — | In progress |
-| 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | Not started |
+| 2 | Venue graph and configuration | 1–2 | 3 | — | Done |
+| 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | In progress |
 | 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | Not started |
 | 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Not started |
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Not started |
@@ -26,8 +26,8 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | Not started |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 2 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 2.3.3 (read endpoints: venues, zones, events; status transitions)
+**Current focus:** Phase 3 (Phase 0 still open: doc updates 0.3.x)
+**Next task:** 3.1.1 (`POST /api/crowd/observations`, doc 14 §3.8)
 
 ---
 
@@ -72,6 +72,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 | 2026-11-20 | [06 FR-AUTH](DOCUMENTATION/06_REQUIREMENTS_SPECIFICATION.md), [13](DOCUMENTATION/13_DATABASE_DESIGN.md), [14](DOCUMENTATION/14_API_SPECIFICATION.md), [19 §3](DOCUMENTATION/19_SECURITY_AND_PRIVACY.md) | JWT auth + 4-role RBAC | No auth | D7: solo scope |
 | 2026-11-20 | [09 §4](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md) (CV-01) | Ultralytics YOLO11 + built-in ByteTrack | YOLOX via ONNX Runtime + standalone ByteTrack | D2: licence (Apache-2.0 instead of AGPL-3.0) |
 | 2026-11-20 | [09 §3](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 1.4.2 | Detector input 640 px (or 960 px) chosen per camera; benchmark every model at 416 and 640 px | The official YOLOX ONNX files have fixed inputs (nano/tiny 416, s 640); each model is used and benchmarked at its export size only | Other sizes need a re-export with PyTorch (heavy dependency); not justified unless measured recall requires it |
+| 2026-11-20 | [14 §2, §3.2/3.5/3.7](DOCUMENTATION/14_API_SPECIFICATION.md) | POST endpoints to create venues, zones, connections, events and schedule items | Read endpoints + status transitions only; configuration loaded from YAML (`tools/load_config.py`); amendments in doc 14 §6 | Solo scope: no polygon/venue editor (D1 scope note), YAML import already planned |
 | 2026-11-20 | [09 §2–4](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 1.4.3 | Whole frame resized to the detector input | **Tiled detection** (`crowdcast/vision/tiling.py`): overlapping tiles at the model input size (overlap 0.2), drop boxes cut at inner tile edges, one full-frame pass, merge NMS. **Provisional default: YOLOX-s + tiles at 5 FPS** (≈ 3 s processing per video second, offline); YOLOX-nano + tiles (≈ real time) as fast fallback. Final model choice by accuracy on MOT20 in 7.1 | Untiled models detect few of the small, distant people in 1080p wide shots (bench-20261120T134304Z: 0.9–8.5 detections/frame untiled vs 44.8–61.8 tiled); accuracy not yet measured |
 
 ---
@@ -139,8 +140,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ### 2.3 Loading and API skeleton (T2.1, T2.2, T2.5)
 - [x] 2.3.1 CLI: load venue YAML and event + schedule YAML into the database
 - [x] 2.3.2 FastAPI app with `GET /api/health` and the error envelope ([14 §1.1](DOCUMENTATION/14_API_SPECIFICATION.md))
-- [ ] 2.3.3 Read endpoints: venues, zones, events; event status transitions ([14 §3.2–3.7](DOCUMENTATION/14_API_SPECIFICATION.md))
-- [ ] 2.3.4 API tests for these endpoints
+- [x] 2.3.3 Read endpoints: venues, zones, events; event status transitions ([14 §3.2–3.7](DOCUMENTATION/14_API_SPECIFICATION.md))
+- [x] 2.3.4 API tests for these endpoints
 
 **Exit:** loading `v1.yaml` creates 8 zones; `GET /api/venues/{id}/zones` returns them; graph validation rejects an invalid venue.
 
@@ -332,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 2.3.3, 2.3.4 | Read API: venue, zones (§3.6 shape), connections, graph/validate, events list (keyset cursor) + detail, schedule; `PATCH` status PLANNED→LIVE→ENDED (graph check, 409/422, audited); `storage/repository.py`, `api/schemas.py`, routers; `VenueGraph.from_connections` for DB rows; OpenAPI at `/api/docs`; 14 API tests; doc 14 → v0.2 (§6 amendments, contract change) | **Phase 2 exit met** (8 zones loaded; zones endpoint returns them; invalid graph rejected). Create endpoints not built (YAML import instead; deviation logged) | 3.1.1 |
 | 2026-11-20 | 2.3.2 | `api/app.py` (`create_app`, CORS, request-id middleware, `GET /api/health`), `api/errors.py` (doc 14 §1.1 envelope for 400/404/405/409/422/500), `storage.check_database`; 8 API tests; server smoke-tested with uvicorn; `httpx` dev dependency | Health returns 503 when the DB is down (spec silent on status code). 401/403/429 omitted (D7). Starlette warns that `httpx` should become `httpx2` in its test client: works, not changed yet | 2.3.3 |
 | 2026-11-20 | 2.3.1 | `storage/config_loader.py` (`load_venue`, `load_event`: validate everything, then insert in one transaction; refuse duplicates; audit_log rows) + `storage/interfaces.py`; CLI `tools/load_config.py`; 5 DB tests; V1 + example event loaded into the dev DB via the CLI | Fixed SQLAlchemy 2.1 `Result.tuples()` deprecation. Venue lookup is by name (no unique constraint on `venues.name`; loader enforces it) | 2.3.2 |
 | 2026-11-20 | 2.2.2, 2.2.3 | `VenueGraph.adjacency()` (binary + width-weighted, zones only, rows = from), `shortest_path()` / `travel_time_s()` (Dijkstra on τ), `travel_time_matrix()` for CROWDSIM; 5 tests incl. TC-GR-03 (V1 matrix built by hand) | OUTSIDE allowed only as route start/end, never as a shortcut between gates. Normalised Â (GNN extension) and Π̄ (estimated from data) not built. TC-GR-04 deferred to CROWDSIM | 2.3.1 |
