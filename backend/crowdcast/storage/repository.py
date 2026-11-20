@@ -287,3 +287,125 @@ def add_audit(
     session.add(
         AuditLog(actor=actor, action=action, entity=entity, entity_id=entity_id, details=details)
     )
+
+
+# ---------------------------------------------------------------------- dashboard reads (4.4)
+def latest_observations(
+    session: Session, event_id: int, origin: DataOrigin
+) -> list[CrowdObservation]:
+    """The newest observation of each zone for one origin."""
+    newest = (
+        select(CrowdObservation.zone_id, func.max(CrowdObservation.bucket_start).label("b"))
+        .where(CrowdObservation.event_id == event_id, CrowdObservation.data_origin == origin)
+        .group_by(CrowdObservation.zone_id)
+        .subquery()
+    )
+    stmt = (
+        select(CrowdObservation)
+        .join(
+            newest,
+            (CrowdObservation.zone_id == newest.c.zone_id)
+            & (CrowdObservation.bucket_start == newest.c.b),
+        )
+        .where(CrowdObservation.event_id == event_id, CrowdObservation.data_origin == origin)
+    )
+    return list(session.scalars(stmt))
+
+
+def origins_with_data(
+    session: Session, event_id: int, start: datetime, end: datetime
+) -> set[DataOrigin]:
+    stmt = (
+        select(CrowdObservation.data_origin)
+        .where(
+            CrowdObservation.event_id == event_id,
+            CrowdObservation.bucket_start >= start,
+            CrowdObservation.bucket_start < end,
+        )
+        .distinct()
+    )
+    return set(session.scalars(stmt))
+
+
+def history(
+    session: Session,
+    event_id: int,
+    origin: DataOrigin,
+    start: datetime,
+    end: datetime,
+    zone_ids: list[int] | None,
+) -> list[CrowdObservation]:
+    stmt = (
+        select(CrowdObservation)
+        .where(
+            CrowdObservation.event_id == event_id,
+            CrowdObservation.data_origin == origin,
+            CrowdObservation.bucket_start >= start,
+            CrowdObservation.bucket_start < end,
+        )
+        .order_by(CrowdObservation.zone_id, CrowdObservation.bucket_start)
+    )
+    if zone_ids:
+        stmt = stmt.where(CrowdObservation.zone_id.in_(zone_ids))
+    return list(session.scalars(stmt))
+
+
+def latest_issued_at(session: Session, event_id: int) -> datetime | None:
+    latest: datetime | None = session.scalar(
+        select(func.max(Prediction.issued_at)).where(Prediction.event_id == event_id)
+    )
+    return latest
+
+
+def zone_predictions(
+    session: Session,
+    event_id: int,
+    zone_id: int,
+    horizons: list[int],
+    start: datetime,
+    end: datetime,
+) -> list[Prediction]:
+    """Predictions whose target_time lies in [start, end], oldest target first."""
+    stmt = (
+        select(Prediction)
+        .where(
+            Prediction.event_id == event_id,
+            Prediction.zone_id == zone_id,
+            Prediction.horizon_min.in_(horizons),
+            Prediction.target_time >= start,
+            Prediction.target_time <= end,
+        )
+        .order_by(Prediction.target_time, Prediction.horizon_min)
+    )
+    return list(session.scalars(stmt))
+
+
+def list_alerts(
+    session: Session,
+    event_id: int,
+    *,
+    statuses: list[AlertStatus] | None,
+    level: str | None,
+    zone_id: int | None,
+    limit: int,
+    before_id: int | None,
+) -> list[CongestionAlert]:
+    stmt = (
+        select(CongestionAlert)
+        .where(CongestionAlert.event_id == event_id)
+        .order_by(CongestionAlert.alert_id.desc())
+        .limit(limit)
+    )
+    if statuses:
+        stmt = stmt.where(CongestionAlert.status.in_(statuses))
+    if level is not None:
+        stmt = stmt.where(CongestionAlert.level == level)
+    if zone_id is not None:
+        stmt = stmt.where(CongestionAlert.zone_id == zone_id)
+    if before_id is not None:
+        stmt = stmt.where(CongestionAlert.alert_id < before_id)
+    return list(session.scalars(stmt))
+
+
+def get_alert(session: Session, alert_id: int) -> CongestionAlert | None:
+    return session.get(CongestionAlert, alert_id)

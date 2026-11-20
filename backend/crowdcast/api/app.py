@@ -17,7 +17,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.engine import Engine
 
-from crowdcast.api import routes_crowd, routes_events, routes_venues
+from crowdcast.api import (
+    routes_alerts,
+    routes_crowd,
+    routes_events,
+    routes_predictions,
+    routes_venues,
+)
 from crowdcast.api.errors import install_error_handlers
 from crowdcast.common.config import get_settings
 from crowdcast.storage.interfaces import check_database, get_engine
@@ -68,6 +74,8 @@ def create_app() -> FastAPI:
     app.include_router(routes_venues.router)
     app.include_router(routes_events.router)
     app.include_router(routes_crowd.router)
+    app.include_router(routes_predictions.router)
+    app.include_router(routes_alerts.router)
 
     @app.get("/api/health", response_model=Health, tags=["system"])
     def health(response: Response, engine: Annotated[Engine, Depends(engine_dependency)]) -> Health:
