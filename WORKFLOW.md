@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 6 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 6.2.2 (ByteTrack tracker; 6.2.1 detector interface already exists)
+**Next task:** 6.3.1 (zone occupancy, line crossings, minute aggregation)
 
 ---
 
@@ -72,6 +72,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 | 2026-11-20 | [06 FR-AUTH](DOCUMENTATION/06_REQUIREMENTS_SPECIFICATION.md), [13](DOCUMENTATION/13_DATABASE_DESIGN.md), [14](DOCUMENTATION/14_API_SPECIFICATION.md), [19 §3](DOCUMENTATION/19_SECURITY_AND_PRIVACY.md) | JWT auth + 4-role RBAC | No auth | D7: solo scope |
 | 2026-11-20 | [09 §4](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md) (CV-01) | Ultralytics YOLO11 + built-in ByteTrack | YOLOX via ONNX Runtime + standalone ByteTrack | D2: licence (Apache-2.0 instead of AGPL-3.0) |
 | 2026-11-20 | [09 §3](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 1.4.2 | Detector input 640 px (or 960 px) chosen per camera; benchmark every model at 416 and 640 px | The official YOLOX ONNX files have fixed inputs (nano/tiny 416, s 640); each model is used and benchmarked at its export size only | Other sizes need a re-export with PyTorch (heavy dependency); not justified unless measured recall requires it |
+| 2026-11-21 | [09 §5, §11](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 6.2.2 | ByteTrack from a permissively licensed library (`supervision`, MIT) | ByteTrack algorithm implemented in `crowdcast/vision/tracking.py` (Kalman + two-stage IoU association, scipy assignment) | `supervision` would add 9 runtime packages (PyAV, matplotlib, Pillow, requests, …) for one ~150-line algorithm; in-house code is fully explainable and motion-only by construction. Doc 09's "match IoU 0.8" read as ByteTrack's match_thresh 0.8 on cost 1 − IoU |
 | 2026-11-21 | [10 §5.1, §3.4](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md) | `fused_u_t` = complementary filter recursing from the event start | Recursion over a fixed 60-min look-back for every row | A live cycle sees only 60 min; with this definition training and online give identical values (tested) |
 | 2026-11-21 | [10 §5.4](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md) | `nbr_flow_to_i` = flow from neighbours over shared lines | Not built; `nbr_out_pressure` kept (zone outflows × shares estimated on training events) | The ingestion contract (AD-02) stores zone inflow/outflow, not per-connection flows, so the feature could not be computed online |
 | 2026-11-20 | [14 §2, §3.2/3.5/3.7](DOCUMENTATION/14_API_SPECIFICATION.md) | POST endpoints to create venues, zones, connections, events and schedule items | Read endpoints + status transitions only; configuration loaded from YAML (`tools/load_config.py`); amendments in doc 14 §6 | Solo scope: no polygon/venue editor (D1 scope note), YAML import already planned |
@@ -236,8 +237,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 6.1.2 Camera YAML: source file, start offset, regions (polygons per zone), counting lines
 
 ### 6.2 Detection and tracking (M2)
-- [ ] 6.2.1 `Detector` interface wrapping YOLOX (ONNX Runtime, CPU); person class only
-- [ ] 6.2.2 ByteTrack behind a `Tracker` interface, from a permissively licensed implementation (verify its licence before adding the dependency); motion-only, no appearance features
+- [x] 6.2.1 `Detector` interface wrapping YOLOX (ONNX Runtime, CPU); person class only
+- [x] 6.2.2 ByteTrack behind a `Tracker` interface, from a permissively licensed implementation (verify its licence before adding the dependency); motion-only, no appearance features
 - [ ] 6.2.3 Privacy check: no frames, crops or tracks written to disk; only aggregates
 
 ### 6.3 Counting and aggregation (M3, [09 §6](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md))
@@ -335,6 +336,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 6.2.1, 6.2.2 | 6.2.1 = existing `PersonDetector` / `YoloxOnnxDetector`; `vision/tracking.py` ByteTracker (doc 09 §5 thresholds, buffer 30 frames, unconfirmed tracks, geometry-only output with foot point); 6 tests on synthetic boxes | In-house ByteTrack (deviation logged); scipy treated as untyped in mypy | 6.3.1 |
 | 2026-11-21 | 6.1.1, 6.1.2 | `vision/frames.py` FrameSource (sampled frames stamped with event time = start + i/fps, in memory only); camera YAML v1 `venue_graph/camera_config.py` (regions with κ + primary, counting lines on venue connections, checked against the venue); doc 12 → v0.4 §6.3 (contract change); 9 tests (generated clip, no people) | ByteTrack decision: implement the algorithm in-house (~150 lines, scipy assignment) instead of `supervision` (MIT, but 9 extra runtime deps incl. PyAV/matplotlib) — deviation logged with 6.2.2 | 6.2.2 |
 | 2026-11-21 | accelerator check | User pointed out the NPU; iGPU (DirectML) benchmarked first: detector `device` option + `compare_devices` tool; identical detections, no meaningful speed-up for YOLOX-s + tiles → CPU stays default (logged) | NPU (Ryzen AI, needs INT8 quantisation + vendor stack) not tried: an extension, only with user go-ahead after the CPU pipeline is measured | 6.1.1 |
 | 2026-11-21 | 5.3.1–5.3.4 | `forecasting/xgb.py` (3-quantile booster per horizon, inverse transform + sorted quantiles), `tools/training/{dataset,train}.py` (validation-only metrics, manifest, registry), cycle uses the active model (cold start < 15 min, family check, any failure → B0, logged), `GET/POST /api/models…/activate`; xgboost + scikit-learn added; A4 model 447 trained on clean commit `9ba4377` and activated. **Phase 5 exit met** on the hand-written example event: FC PREDICTED 18 min before CURRENT; C1/WC release spikes not anticipated (logged as a demo, n = 1) | First training run recorded a dirty tree (edits during the run) → superseded; train.py now records the commit at start and refuses dirty trees. Validation-only numbers in EXPERIMENT_LOG; h5/h15 hit the 2000-round cap; P10–P90 under-covers at 30 min (0.751) — tuning + conformal in Phase 7 | 6.1.1 |

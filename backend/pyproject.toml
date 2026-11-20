@@ -69,8 +69,8 @@ plugins = ["pydantic.mypy"]
 files = ["crowdcast", "tools", "tests"]
 
 [[tool.mypy.overrides]]
-# onnxruntime and shapely ship no type information.
-module = ["onnxruntime", "onnxruntime.*", "shapely", "shapely.*"]
+# onnxruntime, shapely and scipy ship no type information (scipy-stubs not added).
+module = ["onnxruntime", "onnxruntime.*", "shapely", "shapely.*", "scipy", "scipy.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------- pytest
