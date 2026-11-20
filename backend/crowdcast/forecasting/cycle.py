@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from crowdcast.common.enums import DataOrigin
 from crowdcast.common.time import ensure_utc, is_minute_aligned
 from crowdcast.forecasting.baselines import HORIZONS, b0_persistence, forward_fill
-from crowdcast.risk.interfaces import Thresholds, level, risk_score
+from crowdcast.risk.interfaces import AlertChanges, Thresholds, evaluate_alerts, level, risk_score
 from crowdcast.storage.interfaces import repository
 
 log = logging.getLogger("crowdcast.forecasting")
@@ -43,6 +43,7 @@ class CycleResult:
     written: int = 0
     fallback_zones: list[str] = field(default_factory=list)
     skipped_zones: dict[str, str] = field(default_factory=dict)  # code -> reason
+    alerts: AlertChanges = field(default_factory=AlertChanges)
 
 
 def origin_for(is_synthetic: bool) -> DataOrigin:
@@ -117,6 +118,8 @@ def run_cycle(session: Session, event_id: int, issued_at: datetime) -> CycleResu
         result.fallback_zones.append(z.code)
 
     result.written = repository.upsert_predictions(session, rows)
+    # doc 10 §12: write predictions, then call the risk engine (M7)
+    result.alerts = evaluate_alerts(session, event_id, issued_at, origin_for(event.is_synthetic))
     if result.fallback_zones:
         log.info(
             "event %s @ %s: B0 fallback for %d zones%s",

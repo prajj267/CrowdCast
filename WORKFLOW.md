@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 4 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 4.3.2 (alert state machine)
+**Next task:** 4.4.1 (read API for crowd/predictions/alerts)
 
 ---
 
@@ -186,8 +186,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 
 ### 4.3 Risk engine (M7, T3.2)
 - [x] 4.3.1 Level function and risk score ([08 M7](DOCUMENTATION/08_MODULE_DESIGN.md)); per-zone thresholds
-- [ ] 4.3.2 Alert state machine: CURRENT opens after 1 cycle; PREDICTED after 2 consecutive cycles; resolves after 3 cycles below threshold − 0.05; escalates to CRITICAL
-- [ ] 4.3.3 Tests from [17 §2.3](DOCUMENTATION/17_TESTING_STRATEGY.md), including flapping input
+- [x] 4.3.2 Alert state machine: CURRENT opens after 1 cycle; PREDICTED after 2 consecutive cycles; resolves after 3 cycles below threshold − 0.05; escalates to CRITICAL
+- [x] 4.3.3 Tests from [17 §2.3](DOCUMENTATION/17_TESTING_STRATEGY.md), including flapping input
 
 ### 4.4 Read API
 - [ ] 4.4.1 `GET /api/crowd/current/{event_id}`, `/api/crowd/history/{event_id}`
@@ -333,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 4.3.2, 4.3.3 | `risk/alerts.py` (pure state machine over the last 3 cycles: CURRENT immediate, PREDICTED after 2 cycles with smallest horizon, auto-resolve after 3 cycles below θH − 0.05, escalation to CRITICAL) + `risk/engine.py` (rebuilds signals from stored observations/predictions, writes alerts + audit, called by the cycle); 10 pure tests (TC-ALR-01..06, flapping, missing data, reopen) + 5 DB tests; dev event 32 re-run: 10 alerts, all auto-resolved | No pending state stored: derived from the last 3 cycles, so replays re-run identically. Missing data never resolves an alert. With B0 the PREDICTED alert follows the CURRENT one by a cycle: zero lead time, the bar learned models must beat | 4.4.1 |
 | 2026-11-20 | 4.3.1, 4.2.1–4.2.3 | `risk/levels.py` (level, risk score, per-zone thresholds; TC-CNG-01..03 incl. 0.756); `forecasting/cycle.py` (event-time cycle, 60-min window, gaps ≤ 3 min forward-filled, staler zones skipped and logged, B0 fallback logged, idempotent upsert); `tools/run_predictions.py` (back-fill / `--follow`, event time taken from the data); 12 tests; dev event 32 back-filled: 422 cycles, 10,128 fallback predictions in 13.7 s | Decisions: fallback p10 = p50 = p90 (no invented spread); built-in `B0_persistence` model row, never active; synthetic events read SYNTHETIC, others REAL; MANUAL never an input. No learned model yet, so every prediction is fallback | 4.3.2 |
 | 2026-11-20 | 4.1.1, 4.1.2 | `forecasting/baselines.py` B0–B3 exactly per doc 10 §2/§3.2 (vectorised over zones, forward-fill only, B3 clipped to [0, 1.5 C], B2 unclipped as specified) + 9 hand-computed tests; `forecasting/interfaces.py` | **Convention fix:** CROWDSIM switched to occupancy at the END of each bucket (doc 10 §1.1) so every value in row t is known at issue time t; doc 10 → v0.2 corrects the §3.1 conservation index (doc was internally inconsistent; B3 unchanged). Figure regenerated | 4.2.1 |
 | 2026-11-20 | 3.4.3 | `tools/crowdsim/replay.py` (stdlib HTTP, adjustable speed-up, batches ≤ 1,000 rows) + end-to-end DB test; V1 run replayed into dev event 32 through the live API: 3,376 zone-minutes, 0 rejected, 2.0 s | **Phase 3 exit met.** Test isolation fix: a schema test read every observation in the table, broke once the dev DB held replayed rows | 4.1.1 |

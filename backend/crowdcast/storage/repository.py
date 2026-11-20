@@ -14,10 +14,11 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import ReturningInsert
 
-from crowdcast.common.enums import DataOrigin, EventStatus
+from crowdcast.common.enums import AlertStatus, DataOrigin, EventStatus
 from crowdcast.storage.models import (
     AuditLog,
     CameraSource,
+    CongestionAlert,
     CrowdObservation,
     Event,
     EventScheduleItem,
@@ -258,3 +259,31 @@ def upsert_predictions(session: Session, rows: list[dict[str, Any]]) -> int:
     )
     session.execute(stmt)
     return len(rows)
+
+
+# ---------------------------------------------------------------------- alerts (M7)
+def predictions_at(session: Session, event_id: int, issued_ats: list[datetime]) -> list[Prediction]:
+    stmt = select(Prediction).where(
+        Prediction.event_id == event_id, Prediction.issued_at.in_(issued_ats)
+    )
+    return list(session.scalars(stmt))
+
+
+def unresolved_alerts(session: Session, event_id: int) -> list[CongestionAlert]:
+    stmt = select(CongestionAlert).where(
+        CongestionAlert.event_id == event_id, CongestionAlert.status != AlertStatus.RESOLVED
+    )
+    return list(session.scalars(stmt))
+
+
+def add_audit(
+    session: Session,
+    action: str,
+    entity: str,
+    entity_id: int,
+    details: dict[str, Any],
+    actor: str = "SYSTEM",
+) -> None:
+    session.add(
+        AuditLog(actor=actor, action=action, entity=entity, entity_id=entity_id, details=details)
+    )

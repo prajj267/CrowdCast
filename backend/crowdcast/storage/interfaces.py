@@ -10,9 +10,11 @@ from crowdcast.storage.config_loader import (
 )
 from crowdcast.storage.db import check_database, get_engine, session_scope
 from crowdcast.storage.models import (
+    CongestionAlert,
     Event,
     EventScheduleItem,
     ModelVersion,
+    Prediction,
     Venue,
     Zone,
     ZoneConnection,
@@ -20,10 +22,12 @@ from crowdcast.storage.models import (
 
 __all__ = [
     "AlreadyLoadedError",
+    "CongestionAlert",
     "Event",
     "EventLoadResult",
     "EventScheduleItem",
     "ModelVersion",
+    "Prediction",
     "Venue",
     "VenueLoadResult",
     "Zone",
