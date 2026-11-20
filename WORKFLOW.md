@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 5 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 5.1.1 (Phase 5 — forecasting core)
+**Next task:** 5.2.3 (event-level splits) — needs the randomised CROWDSIM event generator and a decision on dataset size
 
 ---
 
@@ -72,6 +72,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 | 2026-11-20 | [06 FR-AUTH](DOCUMENTATION/06_REQUIREMENTS_SPECIFICATION.md), [13](DOCUMENTATION/13_DATABASE_DESIGN.md), [14](DOCUMENTATION/14_API_SPECIFICATION.md), [19 §3](DOCUMENTATION/19_SECURITY_AND_PRIVACY.md) | JWT auth + 4-role RBAC | No auth | D7: solo scope |
 | 2026-11-20 | [09 §4](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md) (CV-01) | Ultralytics YOLO11 + built-in ByteTrack | YOLOX via ONNX Runtime + standalone ByteTrack | D2: licence (Apache-2.0 instead of AGPL-3.0) |
 | 2026-11-20 | [09 §3](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 1.4.2 | Detector input 640 px (or 960 px) chosen per camera; benchmark every model at 416 and 640 px | The official YOLOX ONNX files have fixed inputs (nano/tiny 416, s 640); each model is used and benchmarked at its export size only | Other sizes need a re-export with PyTorch (heavy dependency); not justified unless measured recall requires it |
+| 2026-11-21 | [10 §5.1, §3.4](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md) | `fused_u_t` = complementary filter recursing from the event start | Recursion over a fixed 60-min look-back for every row | A live cycle sees only 60 min; with this definition training and online give identical values (tested) |
+| 2026-11-21 | [10 §5.4](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md) | `nbr_flow_to_i` = flow from neighbours over shared lines | Not built; `nbr_out_pressure` kept (zone outflows × shares estimated on training events) | The ingestion contract (AD-02) stores zone inflow/outflow, not per-connection flows, so the feature could not be computed online |
 | 2026-11-20 | [14 §2, §3.2/3.5/3.7](DOCUMENTATION/14_API_SPECIFICATION.md) | POST endpoints to create venues, zones, connections, events and schedule items | Read endpoints + status transitions only; configuration loaded from YAML (`tools/load_config.py`); amendments in doc 14 §6 | Solo scope: no polygon/venue editor (D1 scope note), YAML import already planned |
 | 2026-11-20 | [09 §2–4](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 1.4.3 | Whole frame resized to the detector input | **Tiled detection** (`crowdcast/vision/tiling.py`): overlapping tiles at the model input size (overlap 0.2), drop boxes cut at inner tile edges, one full-frame pass, merge NMS. **Provisional default: YOLOX-s + tiles at 5 FPS** (≈ 3 s processing per video second, offline); YOLOX-nano + tiles (≈ real time) as fast fallback. Final model choice by accuracy on MOT20 in 7.1 | Untiled models detect few of the small, distant people in 1080p wide shots (bench-20261120T134304Z: 0.9–8.5 detections/frame untiled vs 44.8–61.8 tiled); accuracy not yet measured |
 
@@ -207,14 +209,14 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ## Phase 5 — Forecasting core (T3.6, T3.8)
 
 ### 5.1 Feature builder ([10 §5](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md))
-- [ ] 5.1.1 One shared `FeatureBuilder` used by both training and the online cycle
-- [ ] 5.1.2 F_HIST, F_FLOW, F_SCHED (published schedule only), F_NBR (graph-derived)
-- [ ] 5.1.3 Feature-set configs A1, A2, A3, A4, A4\NBR
-- [ ] 5.1.4 Target y = (N(t+h) − N(t)) / C, drop rows with t + h > T; forward-fill only ([10 §6–7](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md))
+- [x] 5.1.1 One shared `FeatureBuilder` used by both training and the online cycle
+- [x] 5.1.2 F_HIST, F_FLOW, F_SCHED (published schedule only), F_NBR (graph-derived)
+- [x] 5.1.3 Feature-set configs A1, A2, A3, A4, A4\NBR
+- [x] 5.1.4 Target y = (N(t+h) − N(t)) / C, drop rows with t + h > T; forward-fill only ([10 §6–7](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md))
 
 ### 5.2 Leakage protection
-- [ ] 5.2.1 TC-ML-02: features from a truncated series equal features from the full series up to t
-- [ ] 5.2.2 Test that the actual (realised) schedule never reaches the features
+- [x] 5.2.1 TC-ML-02: features from a truncated series equal features from the full series up to t
+- [x] 5.2.2 Test that the actual (realised) schedule never reaches the features
 - [ ] 5.2.3 Splits by event only; a test fails if one event appears in two splits
 
 ### 5.3 XGBoost and registry
@@ -333,6 +335,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 5.1.1–5.1.4, 5.2.1, 5.2.2 | `forecasting/features.py`: one causal `build_features` (F_HIST, F_FLOW, F_SCHED, F_NBR; configs A1–A4, A4_NONBR), `add_target` (y = ΔN/C, tail dropped); `forecasting/sources.py` (venue info, published schedule, training-only outflow shares); 15 tests incl. TC-ML-02 for every config, 60-min online window = whole-event row at t = 59/70/200/300, tampering with the future changes nothing, realised schedule never an input | Test review caught a weak check (window compared with a shifted history, hiding a fused-filter mismatch) → fixed by a fixed-look-back filter. Two deviations logged | 5.2.3 |
 | 2026-11-21 | 4.5.5, MS2 | `VenueMap` (SVG polygons from the venue file, filled by level now / +5 / +15 / +30, connections drawn, one-way dashed, hatched no-data, aria-labels + tooltips); Live layout fixed so it does not shift while queries load; alert wording built from fields in event time. **MS2 check done in the browser:** fresh synthetic event replayed at 120× with `run_predictions --follow`: zone colours changed (FC High 12:57 → Critical 13:17), persistence predictions stored, CURRENT + PREDICTED alerts opened; screenshot `reports/figures/ms2_live_page_synthetic_replay.png` | **Phase 4 exit met (MS2).** Density mode and flow-weighted edges deferred to Phase 8 (no per-edge flows in the API). At high replay speed panels refresh at different moments (alerts can lead cards by a few event-minutes); fine at real time | 5.1.1 |
 | 2026-11-21 | 4.5.4 | Live page: `ZoneCard` (occupancy/capacity, ratio bar with the zone's threshold ticks, level badge, +5/+15/+30 forecast shapes, flows, stale/no-data hatching, low-confidence note) sorted by max risk score; `AlertList` (level then onset, times relative to the event clock, acknowledge/resolve with query invalidation); fallback and connection-lost banners; checked in the browser | 5-min trend arrow left out (needs history; the forecast strip shows direction instead). Per-card fallback note hidden when the page banner already says all forecasts are fallback | 4.5.5 |
 | 2026-11-21 | 4.5.3 | `theme/tokens.css` (doc 15 tokens, light + dark via prefers-color-scheme, mapped into Tailwind), level language (`levels.ts`, `LevelBadge`: colour + shape + word), self-hosted Inter, query hooks (5 s / 10 s refresh, paused when hidden), app shell (event selector, status, event clock from `as_of`, data origin, hatched SYNTHETIC banner, 5-page nav), routes with placeholder pages; checked in the browser (screenshots) | Contrast computed: all level colours ≥ 3.4:1 on surfaces → marks only, text uses text tokens; light `--unknown` failed on `--bg` (2.88) → #808A9C (doc 15 updated). Fixed: event selector lost the current page; sidebar not full height | 4.5.4 |
