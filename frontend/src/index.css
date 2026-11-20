@@ -1,1 +1,19 @@
 @import "tailwindcss";
+@import "./theme/tokens.css";
+
+/* Map the doc 15 tokens into Tailwind utilities (bg-surface, text-muted, border-line, ...). */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-lvl-normal: var(--lvl-normal);
+  --color-lvl-elevated: var(--lvl-elevated);
+  --color-lvl-high: var(--lvl-high);
+  --color-lvl-critical: var(--lvl-critical);
+  --color-unknown: var(--unknown);
+  --color-synthetic: var(--synthetic);
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+}

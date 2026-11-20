@@ -32,9 +32,11 @@
 | `--lvl-elevated` | #B7791F | #E0A43A | ELEVATED ▲ |
 | `--lvl-high` | #D2551E | #FF7A3D | HIGH ◆ |
 | `--lvl-critical` | #C62828 | #FF5252 | CRITICAL ■ |
-| `--unknown` | #8A94A6 | #6B7385 | No/stale data (hatched) |
+| `--unknown` | #808A9C | #6B7385 | No/stale data (hatched) |
 
 Level colours must reach ≥ 3:1 contrast against surfaces (WCAG 2.1 SC 1.4.11) and are always paired with icons. Hex values are starting points, adjusted after contrast testing.
+
+*Contrast test 2026-11-21 (WCAG relative luminance):* every level colour reaches ≥ 3.4:1 on `--surface` and `--bg` in both modes, so they are used for **marks only** (icons, fills, bars); text uses `--text` / `--text-muted`. Light `--unknown` failed on `--bg` (2.88:1) and was darkened #8A94A6 → #808A9C (3.28:1). Added token `--synthetic` (#6D4BD1 / #A48BFF) for the synthetic-data banner. Typeface Inter is self-hosted (`@fontsource-variable/inter`, OFL-1.1) so the dashboard needs no external font service.
 
 ### 2.2 Typography and spacing
 

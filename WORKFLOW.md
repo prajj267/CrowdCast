@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 4 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 4.5.3 (design tokens + app shell)
+**Next task:** 4.5.4 (Live page: ZoneCards + AlertList)
 
 ---
 
@@ -196,7 +196,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ### 4.5 React scaffold and minimal live page (D1 = React)
 - [x] 4.5.1 Scaffold `frontend/` with Vite + React 18 + TypeScript, Tailwind, TanStack Query, React Router; ESLint + Prettier; `npm run build` and `npm run lint` pass
 - [x] 4.5.2 Typed API client generated from FastAPI's OpenAPI schema (e.g. openapi-typescript), with a regeneration script; Vite dev proxy to the API
-- [ ] 4.5.3 Design tokens from [15 §2.1](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md) (level colours + icons, per [11 §4](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md)) and the app shell (layout, navigation, event selector)
+- [x] 4.5.3 Design tokens from [15 §2.1](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md) (level colours + icons, per [11 §4](DOCUMENTATION/11_SPATIAL_INTELLIGENCE.md)) and the app shell (layout, navigation, event selector)
 - [ ] 4.5.4 Live page: ZoneCards (occupancy, ratio, level) and AlertList, polling with TanStack Query
 - [ ] 4.5.5 VenueMap: SVG floor plan from zone polygons in the venue YAML, filled by level
 
@@ -333,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 4.5.3 | `theme/tokens.css` (doc 15 tokens, light + dark via prefers-color-scheme, mapped into Tailwind), level language (`levels.ts`, `LevelBadge`: colour + shape + word), self-hosted Inter, query hooks (5 s / 10 s refresh, paused when hidden), app shell (event selector, status, event clock from `as_of`, data origin, hatched SYNTHETIC banner, 5-page nav), routes with placeholder pages; checked in the browser (screenshots) | Contrast computed: all level colours ≥ 3.4:1 on surfaces → marks only, text uses text tokens; light `--unknown` failed on `--bg` (2.88) → #808A9C (doc 15 updated). Fixed: event selector lost the current page; sidebar not full height | 4.5.4 |
 | 2026-11-21 | 4.5.1, 4.5.2 | `frontend/`: Vite 8 + React 18.3 + TypeScript 5.9 (strict) + Tailwind 4 + TanStack Query 5 + React Router 6, ESLint 10 + Prettier; dev proxy `/api` → 127.0.0.1:8000; `tools/export_openapi.py` + `npm run gen:api` (openapi-typescript) + `src/api/client.ts` (openapi-fetch, error envelope → `ApiError`); `scripts/check.ps1` now also runs frontend format/lint/build | TypeScript pinned to 5.9: TS 7 is not yet supported by typescript-eslint (< 6.1) and openapi-typescript (^5). node_modules ≈ 175 MB (git-ignored) | 4.5.3 |
 | 2026-11-21 | 4.4.1, 4.4.2 | `GET /api/crowd/current`, `/history` (1m/5m, one origin), `GET /api/predictions/{event}` + `/zones/{zone}` (joined with actuals), `GET /api/alerts/{event}` + acknowledge/resolve (409 rules, audited); repository queries; 9 API tests | Staleness in event time (replays); history never mixes origins; operator actions stamped with wall-clock time; doc 14 §6 amended (contract change); model activation deferred to Phase 5 | 4.5.1 |
 | 2026-11-21 | 4.3.2, 4.3.3 | `risk/alerts.py` (pure state machine over the last 3 cycles: CURRENT immediate, PREDICTED after 2 cycles with smallest horizon, auto-resolve after 3 cycles below θH − 0.05, escalation to CRITICAL) + `risk/engine.py` (rebuilds signals from stored observations/predictions, writes alerts + audit, called by the cycle); 10 pure tests (TC-ALR-01..06, flapping, missing data, reopen) + 5 DB tests; dev event 32 re-run: 10 alerts, all auto-resolved | No pending state stored: derived from the last 3 cycles, so replays re-run identically. Missing data never resolves an alert. With B0 the PREDICTED alert follows the CURRENT one by a cycle: zero lead time, the bar learned models must beat | 4.4.1 |

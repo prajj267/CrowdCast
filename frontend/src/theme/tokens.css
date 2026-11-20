@@ -1,0 +1,75 @@
+/*
+ * Design tokens (doc 15 §2.1-2.2). Level colours are used for MARKS only (icon, fill, bar) and
+ * reach >= 3:1 against both surfaces (WCAG 1.4.11, checked 2026-11-21); text always uses
+ * --text / --text-muted. Light --unknown darkened #8A94A6 -> #808A9C to pass 3:1 on --bg.
+ */
+:root {
+  color-scheme: light dark;
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --border: #e2e5ea;
+  --text: #1a1d23;
+  --text-muted: #5b6270;
+  --accent: #2f5bea;
+  --lvl-normal: #2e7d32;
+  --lvl-elevated: #b7791f;
+  --lvl-high: #d2551e;
+  --lvl-critical: #c62828;
+  --unknown: #808a9c;
+  --synthetic: #6d4bd1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1217;
+    --surface: #171b22;
+    --border: #2a303a;
+    --text: #e7eaf0;
+    --text-muted: #9aa3b2;
+    --accent: #6e8dff;
+    --lvl-normal: #4caf50;
+    --lvl-elevated: #e0a43a;
+    --lvl-high: #ff7a3d;
+    --lvl-critical: #ff5252;
+    --unknown: #6b7385;
+    --synthetic: #a48bff;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter Variable", system-ui, sans-serif;
+  font-size: 14px; /* dashboard base (doc 15 §2.2) */
+  font-variant-numeric: tabular-nums; /* counts must not jump on refresh */
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Hatched fill for "no data / stale" (doc 15 §4) and the synthetic-data strip. */
+.hatch-unknown {
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--unknown) 35%, transparent) 0 4px,
+    transparent 4px 9px
+  );
+}
+
+.synthetic-strip {
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--synthetic) 18%, var(--surface)) 0 10px,
+    var(--surface) 10px 20px
+  );
+  border-bottom: 2px solid var(--synthetic);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
