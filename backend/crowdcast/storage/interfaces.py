@@ -7,12 +7,13 @@ from crowdcast.storage.config_loader import (
     load_event,
     load_venue,
 )
-from crowdcast.storage.db import get_engine, session_scope
+from crowdcast.storage.db import check_database, get_engine, session_scope
 
 __all__ = [
     "AlreadyLoadedError",
     "EventLoadResult",
     "VenueLoadResult",
+    "check_database",
     "get_engine",
     "load_event",
     "load_venue",

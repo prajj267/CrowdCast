@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 2 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 2.3.2 (FastAPI app, `GET /api/health`, error envelope)
+**Next task:** 2.3.3 (read endpoints: venues, zones, events; status transitions)
 
 ---
 
@@ -138,7 +138,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 
 ### 2.3 Loading and API skeleton (T2.1, T2.2, T2.5)
 - [x] 2.3.1 CLI: load venue YAML and event + schedule YAML into the database
-- [ ] 2.3.2 FastAPI app with `GET /api/health` and the error envelope ([14 §1.1](DOCUMENTATION/14_API_SPECIFICATION.md))
+- [x] 2.3.2 FastAPI app with `GET /api/health` and the error envelope ([14 §1.1](DOCUMENTATION/14_API_SPECIFICATION.md))
 - [ ] 2.3.3 Read endpoints: venues, zones, events; event status transitions ([14 §3.2–3.7](DOCUMENTATION/14_API_SPECIFICATION.md))
 - [ ] 2.3.4 API tests for these endpoints
 
@@ -332,6 +332,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 2.3.2 | `api/app.py` (`create_app`, CORS, request-id middleware, `GET /api/health`), `api/errors.py` (doc 14 §1.1 envelope for 400/404/405/409/422/500), `storage.check_database`; 8 API tests; server smoke-tested with uvicorn; `httpx` dev dependency | Health returns 503 when the DB is down (spec silent on status code). 401/403/429 omitted (D7). Starlette warns that `httpx` should become `httpx2` in its test client: works, not changed yet | 2.3.3 |
 | 2026-11-20 | 2.3.1 | `storage/config_loader.py` (`load_venue`, `load_event`: validate everything, then insert in one transaction; refuse duplicates; audit_log rows) + `storage/interfaces.py`; CLI `tools/load_config.py`; 5 DB tests; V1 + example event loaded into the dev DB via the CLI | Fixed SQLAlchemy 2.1 `Result.tuples()` deprecation. Venue lookup is by name (no unique constraint on `venues.name`; loader enforces it) | 2.3.2 |
 | 2026-11-20 | 2.2.2, 2.2.3 | `VenueGraph.adjacency()` (binary + width-weighted, zones only, rows = from), `shortest_path()` / `travel_time_s()` (Dijkstra on τ), `travel_time_matrix()` for CROWDSIM; 5 tests incl. TC-GR-03 (V1 matrix built by hand) | OUTSIDE allowed only as route start/end, never as a shortcut between gates. Normalised Â (GNN extension) and Π̄ (estimated from data) not built. TC-GR-04 deferred to CROWDSIM | 2.3.1 |
 | 2026-11-20 | 2.2.1 | `venue_graph/graph.py`: `VenueGraph` (networkx DiGraph incl. OUTSIDE, keyed by zone code), `validate()` → ISOLATED / UNREACHABLE / NO_PATH_OUT errors + NO_COUNTING_LINE warnings, `require_valid()`; 9 tests incl. TC-GR-01/02; V1 validates clean; `networkx` added (BSD-3-Clause, named in doc 07) | Rule 3 (w, τ > 0) enforced at YAML parse. Rule 4 skipped until camera config exists (would otherwise warn on every edge). Isolated zones reported once, not also as unreachable | 2.2.2 |
