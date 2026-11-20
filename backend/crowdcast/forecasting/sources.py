@@ -11,11 +11,19 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 import numpy as np
 
+from crowdcast.common.enums import ZoneType
 from crowdcast.forecasting.features import Arr, SchedItem, VenueInfo
-from crowdcast.venue_graph.interfaces import OUTSIDE, EventConfig, VenueConfig, VenueGraph
+from crowdcast.venue_graph.interfaces import (
+    OUTSIDE,
+    Connection,
+    EventConfig,
+    VenueConfig,
+    VenueGraph,
+)
 
 
 def _uniform_shares(adjacency: Arr, exits_outside: Arr) -> Arr:
@@ -26,17 +34,45 @@ def _uniform_shares(adjacency: Arr, exits_outside: Arr) -> Arr:
     return np.asarray(share, dtype=np.float64)
 
 
-def venue_info(cfg: VenueConfig, outflow_share: Arr | None = None) -> VenueInfo:
-    graph = VenueGraph.from_config(cfg)
-    codes = graph.zone_codes
-    idx = graph.index()
-    zones = {z.code: z for z in cfg.zones}
+@dataclass(frozen=True)
+class ZoneRow:
+    code: str
+    capacity: float
+    area: float
+    zone_type: ZoneType
+    is_entry: bool
+    is_exit: bool
+
+
+@dataclass(frozen=True)
+class ConnectionRow:
+    from_code: str  # OUTSIDE for the virtual outside node
+    to_code: str
+    width_m: float
+    travel_time_s: float
+    bidirectional: bool
+
+
+def venue_info_from_rows(
+    zones: Sequence[ZoneRow], connections: Sequence[ConnectionRow], outflow_share: Arr | None = None
+) -> VenueInfo:
+    """The one way to build VenueInfo - from a venue file (training) or DB rows (online)."""
+    codes = tuple(z.code for z in zones)
+    graph = VenueGraph.from_connections(
+        codes,
+        [
+            Connection(c.from_code, c.to_code, c.width_m, c.travel_time_s, c.bidirectional)
+            for c in connections
+        ],
+    )
+    idx = {c: k for k, c in enumerate(codes)}
     n = len(codes)
     width = np.zeros((n, n))
     travel = np.zeros((n, n))
     exits_outside = np.zeros(n)
-    for c in cfg.connections:
-        for a, b in c.directed_edges():
+    for c in connections:
+        pairs = [(c.from_code, c.to_code)] + ([(c.to_code, c.from_code)] if c.bidirectional else [])
+        for a, b in pairs:
             if a in idx and b in idx:
                 width[idx[a], idx[b]] = c.width_m
                 travel[idx[a], idx[b]] = c.travel_time_s / 60.0
@@ -45,17 +81,41 @@ def venue_info(cfg: VenueConfig, outflow_share: Arr | None = None) -> VenueInfo:
     adjacency = graph.adjacency()
     return VenueInfo(
         codes=codes,
-        capacity=np.array([cfg.capacity_of(c) for c in codes], dtype=np.float64),
-        area=np.array([zones[c].area_m2 for c in codes], dtype=np.float64),
-        zone_type=tuple(zones[c].type for c in codes),
-        is_entry=np.array([float(cfg.is_entry(c)) for c in codes]),
-        is_exit=np.array([float(cfg.is_exit(c)) for c in codes]),
+        capacity=np.array([z.capacity for z in zones], dtype=np.float64),
+        area=np.array([z.area for z in zones], dtype=np.float64),
+        zone_type=tuple(z.zone_type for z in zones),
+        is_entry=np.array([float(z.is_entry) for z in zones]),
+        is_exit=np.array([float(z.is_exit) for z in zones]),
         adjacency=adjacency,
         width=width,
         travel_min=travel,
         outflow_share=outflow_share
         if outflow_share is not None
         else _uniform_shares(adjacency, exits_outside),
+    )
+
+
+def venue_info(cfg: VenueConfig, outflow_share: Arr | None = None) -> VenueInfo:
+    """From a venue YAML file, via the same function the online cycle uses for DB rows."""
+    order = VenueGraph.from_config(cfg).zone_codes
+    zones = {z.code: z for z in cfg.zones}
+    return venue_info_from_rows(
+        [
+            ZoneRow(
+                c,
+                float(cfg.capacity_of(c)),
+                zones[c].area_m2,
+                zones[c].type,
+                cfg.is_entry(c),
+                cfg.is_exit(c),
+            )
+            for c in order
+        ],
+        [
+            ConnectionRow(c.from_, c.to, c.width_m, c.travel_time_s, c.bidirectional)
+            for c in cfg.connections
+        ],
+        outflow_share,
     )
 
 

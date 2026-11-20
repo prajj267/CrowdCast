@@ -21,13 +21,19 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 import numpy as np
+import numpy.typing as npt
 from sqlalchemy.orm import Session
 
+from crowdcast.common.config import REPO_ROOT
 from crowdcast.common.enums import DataOrigin
 from crowdcast.common.time import ensure_utc, is_minute_aligned
 from crowdcast.forecasting.baselines import HORIZONS, b0_persistence, forward_fill
+from crowdcast.forecasting.features import History, SchedItem, build_features
+from crowdcast.forecasting.sources import ConnectionRow, ZoneRow, venue_info_from_rows
+from crowdcast.forecasting.xgb import QuantileForecaster, load_model
 from crowdcast.risk.interfaces import AlertChanges, Thresholds, evaluate_alerts, level, risk_score
-from crowdcast.storage.interfaces import repository
+from crowdcast.storage.interfaces import Event, ModelVersion, Zone, repository
+from crowdcast.venue_graph.interfaces import OUTSIDE
 
 log = logging.getLogger("crowdcast.forecasting")
 
@@ -44,6 +50,8 @@ class CycleResult:
     fallback_zones: list[str] = field(default_factory=list)
     skipped_zones: dict[str, str] = field(default_factory=dict)  # code -> reason
     alerts: AlertChanges = field(default_factory=AlertChanges)
+    model_zones: list[str] = field(default_factory=list)
+    fallback_reason: str | None = None
 
 
 def origin_for(is_synthetic: bool) -> DataOrigin:
@@ -66,20 +74,36 @@ def run_cycle(session: Session, event_id: int, issued_at: datetime) -> CycleResu
         session, event_id, origin_for(event.is_synthetic), start, issued_at
     )
 
-    # (WINDOW_MIN, Z) occupancy, NaN where no observation; row -1 = the bucket that just ended
-    n = np.full((WINDOW_MIN, len(zones)), np.nan)
+    # (WINDOW_MIN, Z) series, NaN where no observation; row -1 = the bucket that just ended
+    shape = (WINDOW_MIN, len(zones))
+    n, fin, fout, speed = (np.full(shape, np.nan) for _ in range(4))
     for o in obs:
         row = int((ensure_utc(o.bucket_start) - start) / timedelta(minutes=1))
-        if o.occupancy is not None:
-            n[row, col[o.zone_id]] = o.occupancy
+        c = col[o.zone_id]
+        n[row, c] = np.nan if o.occupancy is None else o.occupancy
+        fin[row, c] = np.nan if o.inflow is None else o.inflow
+        fout[row, c] = np.nan if o.outflow is None else o.outflow
+        speed[row, c] = np.nan if o.mean_speed_mps is None else o.mean_speed_mps
 
-    # A learned model would be tried here; none exists yet (Phase 5), so B0 is the fallback.
-    active = repository.active_model_version(session)
-    if active is not None:
-        log.warning(
-            "active model %s/%s not loadable yet; using B0 fallback", active.name, active.version
-        )
+    # The active learned model, else (no model, cold start, any failure) the B0 fallback.
+    model_q: dict[int, npt.NDArray[np.float64]] | None = None
     model_id = repository.baseline_model_version(session)
+    active = repository.active_model_version(session)
+    minutes_in = (issued_at - ensure_utc(event.start_time)) / timedelta(minutes=1)
+    if active is not None and active.model_family == "XGBOOST":
+        if minutes_in < COLD_START_MIN:
+            result.fallback_reason = f"cold start ({minutes_in:.0f} min < {COLD_START_MIN})"
+        else:
+            try:
+                model_q = _model_quantiles(
+                    session, event, zones, start, n, fin, fout, speed, active
+                )
+                model_id = active.model_version_id
+            except Exception as exc:  # any model failure falls back to B0 (doc 10 §12)
+                result.fallback_reason = f"model {active.name}/{active.version} failed: {exc}"
+                log.exception("model failed; using B0 fallback")
+    elif active is not None:
+        result.fallback_reason = f"model family {active.model_family} not supported online"
 
     filled = forward_fill(n)
     rows = []
@@ -97,8 +121,10 @@ def run_cycle(session: Session, event_id: int, issued_at: datetime) -> CycleResu
         )
         capacity = float(z.planning_capacity)
         for h in HORIZONS:
-            p50 = float(b0_persistence(filled[:, k], h)[0])
-            u = p50 / capacity
+            if model_q is not None:
+                p10, p50, p90 = (float(v) for v in model_q[h][k])
+            else:
+                p10 = p50 = p90 = float(b0_persistence(filled[:, k], h)[0])
             rows.append(
                 {
                     "event_id": event_id,
@@ -106,26 +132,114 @@ def run_cycle(session: Session, event_id: int, issued_at: datetime) -> CycleResu
                     "issued_at": issued_at,
                     "horizon_min": h,
                     "target_time": issued_at + timedelta(minutes=h),
-                    "p10": p50,
+                    "p10": p10,
                     "p50": p50,
-                    "p90": p50,
-                    "predicted_level": level(u, thresholds),
-                    "risk_score": risk_score(u, u, thresholds),
+                    "p90": p90,
+                    "predicted_level": level(p50 / capacity, thresholds),
+                    "risk_score": risk_score(p50 / capacity, p90 / capacity, thresholds),
                     "model_version_id": model_id,
-                    "is_fallback": True,
+                    "is_fallback": model_q is None,
                 }
             )
-        result.fallback_zones.append(z.code)
+        (result.model_zones if model_q is not None else result.fallback_zones).append(z.code)
 
     result.written = repository.upsert_predictions(session, rows)
     # doc 10 §12: write predictions, then call the risk engine (M7)
     result.alerts = evaluate_alerts(session, event_id, issued_at, origin_for(event.is_synthetic))
     if result.fallback_zones:
         log.info(
-            "event %s @ %s: B0 fallback for %d zones%s",
+            "event %s @ %s: B0 fallback for %d zones (%s)%s",
             event_id,
             issued_at.isoformat(),
             len(result.fallback_zones),
+            result.fallback_reason or "no active model",
             f"; skipped {result.skipped_zones}" if result.skipped_zones else "",
         )
     return result
+
+
+# ---------------------------------------------------------------------- learned model (5.3.3)
+_LOADED: dict[int, QuantileForecaster] = {}
+
+
+def _forecaster(mv: ModelVersion) -> QuantileForecaster:
+    """Load a model directory once per process (models are immutable once registered)."""
+    if mv.model_version_id not in _LOADED:
+        _LOADED[mv.model_version_id] = load_model(REPO_ROOT / mv.artifact_path)
+    return _LOADED[mv.model_version_id]
+
+
+def _model_quantiles(
+    session: Session,
+    event: Event,
+    zones: list[Zone],
+    window_start: datetime,
+    n: npt.NDArray[np.float64],
+    fin: npt.NDArray[np.float64],
+    fout: npt.NDArray[np.float64],
+    speed: npt.NDArray[np.float64],
+    mv: ModelVersion,
+) -> dict[int, npt.NDArray[np.float64]]:
+    """(Z, 3) occupancy quantiles per horizon from the shared FeatureBuilder + the model."""
+    model = _forecaster(mv)
+    venue = repository.get_venue(session, event.venue_id)
+    assert venue is not None
+    codes = tuple(z.code for z in zones)
+    by_id = {z.zone_id: z.code for z in zones}
+    info = venue_info_from_rows(
+        [
+            ZoneRow(
+                z.code,
+                float(z.planning_capacity),
+                float(z.usable_area_m2),
+                z.zone_type,
+                z.is_entry,
+                z.is_exit,
+            )
+            for z in zones
+        ],
+        [
+            ConnectionRow(
+                OUTSIDE if c.from_zone_id is None else by_id[c.from_zone_id],
+                OUTSIDE if c.to_zone_id is None else by_id[c.to_zone_id],
+                float(c.boundary_width_m),
+                float(c.travel_time_s),
+                c.bidirectional,
+            )
+            for c in repository.list_connections(session, event.venue_id)
+        ],
+        model.outflow_share(venue.name, codes),  # training-estimated; uniform if unknown venue
+    )
+    event_start = ensure_utc(event.start_time)
+    idx = {c: k for k, c in enumerate(codes)}
+    schedule = tuple(
+        SchedItem(
+            zone=None if code is None else idx[code],
+            category=item.category,
+            start_min=(ensure_utc(item.start_time) - event_start) / timedelta(minutes=1),
+            end_min=(ensure_utc(item.end_time) - event_start) / timedelta(minutes=1),
+            expected_attendance=None
+            if item.expected_attendance is None
+            else float(item.expected_attendance),
+            attraction=float(item.attraction_weight),
+        )
+        for item, code in repository.list_schedule(session, event.event_id)  # published (DB)
+    )
+    hist = History(
+        n=n,
+        inflow=fin,
+        outflow=fout,
+        speed=speed,
+        offset=int((window_start - event_start) / timedelta(minutes=1)),
+        duration_min=(ensure_utc(event.end_time) - event_start) / timedelta(minutes=1),
+        schedule=schedule,
+    )
+    out: dict[int, npt.NDArray[np.float64]] = {}
+    for h in HORIZONS:
+        rows = build_features(hist, info, model.feature_set, h)
+        last = rows[rows["k"] == rows["k"].max()].sort_values("zone")
+        q = model.predict(last, h, info.capacity)
+        if not np.all(np.isfinite(q)):
+            raise ValueError(f"non-finite forecast at h={h}")
+        out[h] = q
+    return out

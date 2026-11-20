@@ -21,6 +21,7 @@ from crowdcast.api import (
     routes_alerts,
     routes_crowd,
     routes_events,
+    routes_models,
     routes_predictions,
     routes_venues,
 )
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(routes_crowd.router)
     app.include_router(routes_predictions.router)
     app.include_router(routes_alerts.router)
+    app.include_router(routes_models.router)
 
     @app.get("/api/health", response_model=Health, tags=["system"])
     def health(response: Response, engine: Annotated[Engine, Depends(engine_dependency)]) -> Health:

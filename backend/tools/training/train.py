@@ -79,8 +79,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--feature-set", type=FeatureSet, default=FeatureSet.A4)
     parser.add_argument("--horizons", type=int, nargs="*", default=list(HORIZONS))
     parser.add_argument("--no-register", action="store_true", help="skip the model_versions row")
+    parser.add_argument(
+        "--allow-dirty", action="store_true", help="train on uncommitted code (not citable)"
+    )
     args = parser.parse_args(argv)
     fs: FeatureSet = args.feature_set
+    # Record the code version NOW: edits made while training runs must not change it, and a
+    # result is only citable if it comes from committed code (CLAUDE.md §6).
+    commit = git_commit()
+    if commit.endswith("(dirty working tree)") and not args.allow_dirty:
+        print("working tree has uncommitted changes; commit first (or --allow-dirty, not citable)")
+        return 2
 
     splits = load_splits()
     train_ids, val_ids = splits["train"], splits["validation"]
@@ -126,7 +135,7 @@ def main(argv: list[str] | None = None) -> int:
         "train_events": len(train_ids),
         "validation_events": len(val_ids),
         "data_hash": data_hash(train_ids + val_ids),
-        "git_commit": git_commit(),
+        "git_commit": commit,
         "outflow_shares": shares_for_manifest(infos),
         "validation_metrics": metrics,
         "note": "metrics are on the VALIDATION split only; test splits untouched",
