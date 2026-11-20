@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 6 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 6.3.1 (zone occupancy, line crossings, minute aggregation)
+**Next task:** 6.3.3 (post REAL observations from a clip) + 6.3.4 regression test
 
 ---
 
@@ -239,11 +239,11 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ### 6.2 Detection and tracking (M2)
 - [x] 6.2.1 `Detector` interface wrapping YOLOX (ONNX Runtime, CPU); person class only
 - [x] 6.2.2 ByteTrack behind a `Tracker` interface, from a permissively licensed implementation (verify its licence before adding the dependency); motion-only, no appearance features
-- [ ] 6.2.3 Privacy check: no frames, crops or tracks written to disk; only aggregates
+- [x] 6.2.3 Privacy check: no frames, crops or tracks written to disk; only aggregates
 
 ### 6.3 Counting and aggregation (M3, [09 §6](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md))
-- [ ] 6.3.1 Occupancy per frame (foot point inside the polygon)
-- [ ] 6.3.2 Line crossings with direction and debounce
+- [x] 6.3.1 Occupancy per frame (foot point inside the polygon)
+- [x] 6.3.2 Line crossings with direction and debounce
 - [ ] 6.3.3 Minute aggregation with quality flags; posts REAL observations to the ingestion API
 - [ ] 6.3.4 Geometry and aggregation unit tests ([17 §2.1](DOCUMENTATION/17_TESTING_STRATEGY.md)); one fixed-clip regression test
 
@@ -336,6 +336,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 6.2.3, 6.3.1, 6.3.2 (+ 6.3.3 logic) | `aggregation/counting.py`: foot-point occupancy per region, debounced line crossings (band 10 px, one per direction per 10 s, step-back cancels), line orientation from the camera's regions, minute aggregation (median / κ, flows, LOW_CONFIDENCE / PARTIAL); `vision/pipeline.py` frames → detector → ByteTrack → rows; 13 tests incl. a privacy test (pipeline writes nothing to disk) | A test I wrote first mis-stated rule 3 (out-then-in within 10 s is a step-back, cancelled) — test corrected, code was right. Flows for zones without a region in the camera are not emitted as rows | 6.3.3 |
 | 2026-11-21 | 6.2.1, 6.2.2 | 6.2.1 = existing `PersonDetector` / `YoloxOnnxDetector`; `vision/tracking.py` ByteTracker (doc 09 §5 thresholds, buffer 30 frames, unconfirmed tracks, geometry-only output with foot point); 6 tests on synthetic boxes | In-house ByteTrack (deviation logged); scipy treated as untyped in mypy | 6.3.1 |
 | 2026-11-21 | 6.1.1, 6.1.2 | `vision/frames.py` FrameSource (sampled frames stamped with event time = start + i/fps, in memory only); camera YAML v1 `venue_graph/camera_config.py` (regions with κ + primary, counting lines on venue connections, checked against the venue); doc 12 → v0.4 §6.3 (contract change); 9 tests (generated clip, no people) | ByteTrack decision: implement the algorithm in-house (~150 lines, scipy assignment) instead of `supervision` (MIT, but 9 extra runtime deps incl. PyAV/matplotlib) — deviation logged with 6.2.2 | 6.2.2 |
 | 2026-11-21 | accelerator check | User pointed out the NPU; iGPU (DirectML) benchmarked first: detector `device` option + `compare_devices` tool; identical detections, no meaningful speed-up for YOLOX-s + tiles → CPU stays default (logged) | NPU (Ryzen AI, needs INT8 quantisation + vendor stack) not tried: an extension, only with user go-ahead after the CPU pipeline is measured | 6.1.1 |
