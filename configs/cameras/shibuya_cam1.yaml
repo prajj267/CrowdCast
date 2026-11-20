@@ -1,0 +1,21 @@
+# Camera for the public Shibuya Crossing clip (Wikimedia Commons, Basile Morin, CC BY-SA 4.0;
+# not redistributed - download it to videos/public/shibuya_crossing.webm). Format: doc 12 §6.3.
+#
+# recording_start is ILLUSTRATIVE: the clip's real recording date is unknown, so a fixed past
+# event time is used (REAL observations must not lie in the future, doc 14 §6).
+format_version: 1
+camera:
+  code: SHIBUYA1
+  venue: shibuya_demo
+  source: videos/public/shibuya_crossing.webm
+  recording_start: 2026-11-01T03:00:00Z
+  sample_fps: 5
+  image_width: 1920
+  image_height: 1080
+  detector: yolox_s
+  tiled: true
+regions:
+  - {zone: XN, polygon_px: [[0, 0], [1920, 0], [1920, 540], [0, 540]], coverage_fraction: 1.0}
+  - {zone: XS, polygon_px: [[0, 540], [1920, 540], [1920, 1080], [0, 1080]], coverage_fraction: 1.0}
+lines:
+  - {from: XN, to: XS, p1: [0, 540], p2: [1920, 540], positive_side: XS}

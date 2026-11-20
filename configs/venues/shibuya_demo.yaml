@@ -1,0 +1,23 @@
+# Demo venue for the public Shibuya Crossing clip (WORKFLOW 6.3, MS3). Format: doc 12 §6.1.
+#
+# ILLUSTRATIVE VALUES ONLY: the crossing is split into two halves along the image's middle
+# row so that one counting line separates them. Areas and capacities are placeholders (the
+# real dimensions are unknown); plan coordinates = image pixels (1920 x 1080).
+format_version: 1
+illustrative: true
+
+venue:
+  name: Shibuya Crossing clip (demo)
+  plan_width: 1920
+  plan_height: 1080
+
+zones:
+  - {code: XN, name: Crossing north half, type: OPEN_AREA, area_m2: 400, capacity: 600,
+     polygon: [[0, 0], [1920, 0], [1920, 540], [0, 540]]}
+  - {code: XS, name: Crossing south half, type: OPEN_AREA, area_m2: 400, capacity: 600,
+     polygon: [[0, 540], [1920, 540], [1920, 1080], [0, 1080]]}
+
+connections:
+  - {from: OUTSIDE, to: XN, width_m: 30, travel_time_s: 15}
+  - {from: OUTSIDE, to: XS, width_m: 30, travel_time_s: 15}
+  - {from: XN, to: XS, width_m: 30, travel_time_s: 20}

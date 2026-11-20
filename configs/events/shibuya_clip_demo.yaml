@@ -1,0 +1,11 @@
+# Event wrapper for the public Shibuya Crossing clip (MS3 demo). REAL footage, NOT synthetic.
+# Times are ILLUSTRATIVE (the clip's real date is unknown); the clip lasts about 59 s.
+format_version: 1
+illustrative: true
+event:
+  name: Shibuya Crossing clip (MS3 demo)
+  venue: shibuya_demo
+  start_time: 2026-11-01T02:55:00Z
+  end_time: 2026-11-01T03:10:00Z
+  is_synthetic: false
+schedule: []
