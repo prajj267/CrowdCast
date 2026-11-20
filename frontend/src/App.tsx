@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { LivePage } from "./features/live/LivePage";
 import { Shell } from "./routes/Shell";
 import { Home, NotBuiltYet } from "./routes/pages";
 
@@ -15,7 +16,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/events/:eventId" element={<Shell />}>
             <Route index element={<Navigate to="live" replace />} />
-            <Route path="live" element={<NotBuiltYet title="Live" task="4.5.4" />} />
+            <Route path="live" element={<LivePage />} />
             <Route path="predictions" element={<NotBuiltYet title="Predictions" task="8" />} />
             <Route path="alerts" element={<NotBuiltYet title="Alerts" task="8" />} />
             <Route path="history" element={<NotBuiltYet title="History" task="8" />} />
