@@ -77,7 +77,7 @@ def plot_run(run_dir: Path, out_file: Path) -> Path:
     )  # fmt: skip
     fig.text(
         0.01, 0.955,
-        "Occupancy at the start of each minute; dashed = planning capacity C; shaded = actual "
+        "Occupancy at the end of each minute; dashed = planning capacity C; shaded = actual "
         "schedule items in the zone. Y-scales differ per panel. "
         f"Seed {manifest['master_seed']}/{manifest['event_index']}, "
         f"commit {manifest['git_commit'][:7]}.",

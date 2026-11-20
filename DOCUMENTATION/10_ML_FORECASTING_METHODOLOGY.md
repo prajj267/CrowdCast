@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Proposed; **no forecasting results exist yet** |
 | Module | M6, T2 |
 
@@ -61,13 +61,13 @@ Every learned model must be compared to **all** baselines at **each** horizon. A
 If all boundaries of zone $i$ are observed and nobody appears or disappears inside the zone:
 
 $$
-N_i(t+\Delta t) = N_i(t) + F^{in}_i(t)\,\Delta t - F^{out}_i(t)\,\Delta t
+N_i(t) = N_i(t-\Delta t) + F^{in}_i(t)\,\Delta t - F^{out}_i(t)\,\Delta t
 $$
 
-Summed over $h$ steps:
+with $N_i(t)$ the occupancy at the **end** of bucket $t$ (§1.1) and $F_i(t)$ the crossings during bucket $t$. Summed over $h$ steps:
 
 $$
-N_i(t+h) = N_i(t) + \sum_{s=t}^{t+h-1}\big(F^{in}_i(s) - F^{out}_i(s)\big)\Delta t
+N_i(t+h) = N_i(t) + \sum_{s=t+1}^{t+h}\big(F^{in}_i(s) - F^{out}_i(s)\big)\Delta t
 $$
 
 ### 3.2 Baseline B3
@@ -298,3 +298,9 @@ Cold start: during the first 15 minutes of an event, predictions are persistence
 | Graph | Neighbour features in XGBoost first; GNN only as A5 extension |
 | Uncertainty | Quantile + split-conformal calibration |
 | Validation | Event-grouped splits; unseen venue topology; real sessions as test-only |
+
+## 15. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 0.2 | 2026-11-20 | §3.1: time index of the conservation identity corrected to match §1.1 ($N_i(t)$ = occupancy at the end of bucket $t$): $N_i(t) = N_i(t-1) + F^{in}_i(t) - F^{out}_i(t)$; the summed form runs over $s = t+1 \dots t+h$. B3 (§3.2) is unchanged. Reason: with §1.1's definition the v0.1 form added flows observed after the occupancy; every value in row $t$ must be known at issue time $t$ (§7) |

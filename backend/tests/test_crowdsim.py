@@ -52,13 +52,14 @@ def test_conservation_holds_exactly(
 ) -> None:
     r = simulate(venue, event, load_regime(regime), event_rng(2027, index))
     n = r.occupancy
-    # per zone: N(t+1) = N(t) + inflow(t) - outflow(t)
-    np.testing.assert_array_equal(n[1:] - n[:-1], r.inflow[:-1] - r.outflow[:-1])
+    # per zone, N at the END of each bucket: N(t) = N(t-1) + inflow(t) - outflow(t)
+    np.testing.assert_array_equal(n[1:] - n[:-1], r.inflow[1:] - r.outflow[1:])
+    np.testing.assert_array_equal(n[0], r.inflow[0] - r.outflow[0])  # venue starts empty
     # venue: sum_i dN_i = entries - exits (doc 11 §5.1)
-    np.testing.assert_array_equal(n[1:].sum(1) - n[:-1].sum(1), r.entries[:-1] - r.exits[:-1])
+    np.testing.assert_array_equal(n[1:].sum(1) - n[:-1].sum(1), r.entries[1:] - r.exits[1:])
     # everybody who arrived also left
     assert r.entries.sum() == r.exits.sum() == r.arrivals_total
-    assert r.left_inside_at_stop == 0 and n[0].sum() == 0
+    assert r.left_inside_at_stop == 0 and n[-1].sum() == 0
 
 
 # ------------------------------------------------------------------ reproducibility

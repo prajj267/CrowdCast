@@ -42,7 +42,7 @@ class SimResult:
     zone_codes: tuple[str, ...]
     edges: tuple[tuple[str, str], ...]  # directed, OUTSIDE allowed
     bucket_starts: tuple[datetime, ...]
-    occupancy: IntArr  # (B, Z) N at the START of each bucket
+    occupancy: IntArr  # (B, Z) N at the END of each bucket (doc 10 §1.1)
     edge_flow: IntArr  # (B, E) crossings during each bucket
     inflow: IntArr  # (B, Z)
     outflow: IntArr  # (B, Z)
@@ -234,7 +234,7 @@ def simulate(
         t_s = tick * dt
         b = tick // ticks_per_bucket
         if tick % ticks_per_bucket == 0:
-            occupancy[b] = occ  # N at the start of bucket b (§1)
+            occupancy[b] = occ  # start of bucket b; converted to end-of-bucket below
             if t_s >= dur_s and occ.sum() == 0 and not any(queues[e] for e in range(len(queues))):
                 used_buckets = b
                 break
@@ -330,7 +330,6 @@ def simulate(
         # 6. speeds
         speed_sum[b] += speed()
 
-    occupancy = occupancy[:used_buckets]
     edge_flow = edge_flow[:used_buckets]
     mean_speed = speed_sum[:used_buckets] / ticks_per_bucket
     inflow = np.zeros((used_buckets, v.n), dtype=np.int64)
@@ -340,6 +339,9 @@ def simulate(
             inflow[:, v.dst[e]] += edge_flow[:, e]
         if v.src[e] != v.out:
             outflow[:, v.src[e]] += edge_flow[:, e]
+    # End-of-bucket occupancy (doc 10 §1.1): N(b) = N_start(b) + inflow(b) - outflow(b), so every
+    # value in row b is known when bucket b closes - no look-ahead at issue time.
+    occupancy = occupancy[:used_buckets] + inflow - outflow
     entries = edge_flow[:, v.src == v.out].sum(axis=1)
     exits = edge_flow[:, v.dst == v.out].sum(axis=1)
     return SimResult(

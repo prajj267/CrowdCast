@@ -21,9 +21,12 @@ reported. A second regime (§9) re-runs key results with different placeholders 
 | Simulated span | from `start_time` until the venue is empty or `end_time + 30 min` | [PH] |
 
 **Bucket convention (needed for exact conservation).** For zone *i* and bucket *t*:
-`N_i(t)` = occupancy at the **start** of the bucket; `F_in_i(t)`, `F_out_i(t)`, `F_{j→i}(t)` =
-crossings **during** [t, t + 1 min). Hence `N_i(t+1) = N_i(t) + F_in_i(t) − F_out_i(t)` exactly,
-and summed over zones the venue-level identity of doc 11 §5.1 holds exactly (test 3.4.1).
+`N_i(t)` = occupancy at the **end** of the bucket (doc 10 §1.1); `F_in_i(t)`, `F_out_i(t)`,
+`F_{j→i}(t)` = crossings **during** [t, t + 1 min). Hence `N_i(t) = N_i(t−1) + F_in_i(t) − F_out_i(t)`
+exactly, and summed over zones the venue-level identity of doc 11 §5.1 holds exactly (test 3.4.1).
+Every value in row *t* is known when bucket *t* closes, so a forecast issued at *t* may use the
+whole row without look-ahead. *(Changed 2026-11-20 from start-of-bucket N, which would have put
+flows observed after N into the same row.)*
 
 ## 2. Agents and where they are counted
 

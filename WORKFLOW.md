@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 4 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 4.1.1 (baselines B0–B3)
+**Next task:** 4.2.1 (prediction cycle)
 
 ---
 
@@ -176,8 +176,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ## Phase 4 — Vertical slice (MS2)
 
 ### 4.1 Baselines ([10 §2–3](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md), T3.7)
-- [ ] 4.1.1 B0 persistence, B1 moving average (k = 5), B2 linear trend (10 min), B3 conservation extrapolation
-- [ ] 4.1.2 Unit tests with hand-computed values
+- [x] 4.1.1 B0 persistence, B1 moving average (k = 5), B2 linear trend (10 min), B3 conservation extrapolation
+- [x] 4.1.2 Unit tests with hand-computed values
 
 ### 4.2 Prediction cycle (T3.1, [10 §12](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md))
 - [ ] 4.2.1 Cycle every 60 s of event time: read the latest observations, predict +5/+15/+30 min, write `predictions`
@@ -333,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 4.1.1, 4.1.2 | `forecasting/baselines.py` B0–B3 exactly per doc 10 §2/§3.2 (vectorised over zones, forward-fill only, B3 clipped to [0, 1.5 C], B2 unclipped as specified) + 9 hand-computed tests; `forecasting/interfaces.py` | **Convention fix:** CROWDSIM switched to occupancy at the END of each bucket (doc 10 §1.1) so every value in row t is known at issue time t; doc 10 → v0.2 corrects the §3.1 conservation index (doc was internally inconsistent; B3 unchanged). Figure regenerated | 4.2.1 |
 | 2026-11-20 | 3.4.3 | `tools/crowdsim/replay.py` (stdlib HTTP, adjustable speed-up, batches ≤ 1,000 rows) + end-to-end DB test; V1 run replayed into dev event 32 through the live API: 3,376 zone-minutes, 0 rejected, 2.0 s | **Phase 3 exit met.** Test isolation fix: a schema test read every observation in the table, broke once the dev DB held replayed rows | 4.1.1 |
 | 2026-11-20 | 3.4.2 | `tools/crowdsim/plot.py`; figure `reports/figures/crowdsim_v1_spring_fest_day1_regimea_seed2027-0.png` (SYNTHETIC, regime A placeholders, commit 527119b) | Eye check found a design flaw, fixed: "stay until the item ends" made exhibition visitors stay 5 h → only shows hold visitors (DESIGN §7). Remaining, kept on purpose (not tuned away): food court at its jam limit through the lunch window = demand above capacity under these placeholders | 3.4.3 |
 | 2026-11-20 | 3.3.1–3.3.6, 3.4.1 | CROWDSIM core (`tools/crowdsim/`: params, schedule perturbation, agent loop with logit choice, capacity queues, spillback, speed–density, exit wave; Parquet + manifest output; CLI); 13 tests incl. exact conservation (TC-GR-04) for regimes A and B, determinism, spillback, perturbation ranges; 7-h V1 event in ≈ 1–1.5 s; `pandas`, `pyarrow` (+ `pandas-stubs` dev) added | Bug found by tests and fixed: agents queued towards a jammed zone at closing time never left (gridlock) → at closing all queued agents re-route to an exit. With regime A placeholders the V1 corridor C1 reaches its jam limit (750) at peak: a real bottleneck under these illustrative parameters | 3.4.2 |
