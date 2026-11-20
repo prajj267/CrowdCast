@@ -90,8 +90,12 @@ v_free = 1.3 m/s [PH], ρ_jam = 5.0 persons/m² [PH]. Output `mean_speed_mps` = 
 
 ## 7. Dwell and departures [DOC 12 §5.1 steps 2, 6]
 
-- **Dwell** on arrival at the destination: if an actual item is running there, until the item
-  ends plus LogNormal(median 3 min, σ 0.5) [PH]; otherwise LogNormal with median by zone type —
+- **Dwell** on arrival at the destination: if a **PERFORMANCE, ANNOUNCEMENT or pop-up** item is
+  running there (or starts within 30 min), until the item ends plus LogNormal(median 3 min,
+  σ 0.5) [PH]. MEAL and OTHER items (e.g. lunch, an all-day exhibition) only raise attraction;
+  visitors then stay the zone-type dwell. *(Revised 2026-11-20 after the 3.4.2 eye check: with
+  "stay until any item ends", every exhibition visitor stayed 5 h and the food court sat at its jam
+  limit for the whole lunch window.)* Otherwise LogNormal with median by zone type —
   FOOD 20, EXHIBITION 15, STAGE 10, OPEN_AREA 10, SEATING 15, FACILITY 5, CORRIDOR 1, OTHER 5 min,
   σ = 0.6 [PH].
 - **Leave option** in the logit with utility `β_L · ℓ(t)`; ℓ rises linearly from 0 at the

@@ -31,6 +31,7 @@ dev = [
     "types-networkx>=3.6.1.20261119",
     "httpx>=0.28.1",
     "pandas-stubs>=3.1.0.261029",
+    "matplotlib>=3.11.2",
 ]
 
 [build-system]

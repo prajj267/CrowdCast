@@ -29,6 +29,7 @@ from tools.crowdsim.schedule import GATE_TYPES, SimItem, actual_items, published
 WAITING_OUTSIDE, BUSY, DWELLING, QUEUED, READY, LEFT = range(6)
 NO_DEST = -1
 VENUE_WIDE_CATEGORIES = {ScheduleCategory.ENTRY_OPEN, ScheduleCategory.EXIT_WAVE}
+WATCHED_TO_END = {ScheduleCategory.PERFORMANCE, ScheduleCategory.ANNOUNCEMENT}
 
 FloatArr = npt.NDArray[np.float64]
 IntArr = npt.NDArray[np.int64]
@@ -147,6 +148,11 @@ def simulate(
     item_start = np.array([(it.start - start).total_seconds() for it in zoned])
     item_end = np.array([(it.end - start).total_seconds() for it in zoned])
     item_weight = np.array([it.attraction_weight * it.popularity for it in zoned])
+    # Only shows are watched to the end; meals and exhibitions attract visitors who then stay
+    # for the zone's usual dwell time (DESIGN.md §7, revised after the 3.4.2 eye check).
+    item_holds = np.array(
+        [it.is_popup or it.category in WATCHED_TO_END for it in zoned], dtype=bool
+    )
     last_item_end = float(item_end.max()) if len(zoned) else dur_s
 
     # ---- arrivals (§3)
@@ -216,7 +222,7 @@ def simulate(
 
     def dwell_time(k: int, t_s: float) -> float:
         rise = p_choice.item_rise_min * 60
-        running = (item_zone == k) & (item_start - rise <= t_s) & (t_s < item_end)
+        running = (item_zone == k) & item_holds & (item_start - rise <= t_s) & (t_s < item_end)
         if running.any():
             extra = rng.lognormal(
                 math.log(p_dwell.after_item_median_min * 60), p_dwell.after_item_sigma
