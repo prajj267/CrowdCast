@@ -111,6 +111,7 @@ Python lives in `backend/` (uv project, uv-managed CPython 3.12; `python-prefere
 | Load venue / event config into the DB | `uv run python -m tools.load_config venue ../configs/venues/v1.yaml` then `... event ../configs/events/v1_spring_fest_day1.yaml` (refuses duplicates) |
 | Run CROWDSIM for one event (SYNTHETIC) | `uv run python -m tools.crowdsim.run --event ../configs/events/v1_spring_fest_day1.yaml [--regime b]` → `data/synthetic/crowdsim/` |
 | CROWDSIM figure / replay | `uv run python -m tools.crowdsim.plot <run dir>`; `uv run python -m tools.crowdsim.replay <run dir> --event-id N --speedup 60` (API must be running; `--speedup 0` = as fast as possible) |
+| Prediction cycles in event time | `uv run python -m tools.run_predictions --event-id N` (back-fill) or `... --follow` (while a replay posts) |
 | Tests needing model files | `uv run pytest -m model` (skipped if `models/yolox/` is empty) |
 
 Gotchas:

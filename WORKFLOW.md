@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 4 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 4.2.1 (prediction cycle)
+**Next task:** 4.3.2 (alert state machine)
 
 ---
 
@@ -180,12 +180,12 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 4.1.2 Unit tests with hand-computed values
 
 ### 4.2 Prediction cycle (T3.1, [10 §12](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md))
-- [ ] 4.2.1 Cycle every 60 s of event time: read the latest observations, predict +5/+15/+30 min, write `predictions`
-- [ ] 4.2.2 Falls back to B0 when no active model exists or a model fails; the fallback is logged
-- [ ] 4.2.3 Works in replay mode (event time, not wall-clock time)
+- [x] 4.2.1 Cycle every 60 s of event time: read the latest observations, predict +5/+15/+30 min, write `predictions`
+- [x] 4.2.2 Falls back to B0 when no active model exists or a model fails; the fallback is logged
+- [x] 4.2.3 Works in replay mode (event time, not wall-clock time)
 
 ### 4.3 Risk engine (M7, T3.2)
-- [ ] 4.3.1 Level function and risk score ([08 M7](DOCUMENTATION/08_MODULE_DESIGN.md)); per-zone thresholds
+- [x] 4.3.1 Level function and risk score ([08 M7](DOCUMENTATION/08_MODULE_DESIGN.md)); per-zone thresholds
 - [ ] 4.3.2 Alert state machine: CURRENT opens after 1 cycle; PREDICTED after 2 consecutive cycles; resolves after 3 cycles below threshold − 0.05; escalates to CRITICAL
 - [ ] 4.3.3 Tests from [17 §2.3](DOCUMENTATION/17_TESTING_STRATEGY.md), including flapping input
 
@@ -333,6 +333,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-20 | 4.3.1, 4.2.1–4.2.3 | `risk/levels.py` (level, risk score, per-zone thresholds; TC-CNG-01..03 incl. 0.756); `forecasting/cycle.py` (event-time cycle, 60-min window, gaps ≤ 3 min forward-filled, staler zones skipped and logged, B0 fallback logged, idempotent upsert); `tools/run_predictions.py` (back-fill / `--follow`, event time taken from the data); 12 tests; dev event 32 back-filled: 422 cycles, 10,128 fallback predictions in 13.7 s | Decisions: fallback p10 = p50 = p90 (no invented spread); built-in `B0_persistence` model row, never active; synthetic events read SYNTHETIC, others REAL; MANUAL never an input. No learned model yet, so every prediction is fallback | 4.3.2 |
 | 2026-11-20 | 4.1.1, 4.1.2 | `forecasting/baselines.py` B0–B3 exactly per doc 10 §2/§3.2 (vectorised over zones, forward-fill only, B3 clipped to [0, 1.5 C], B2 unclipped as specified) + 9 hand-computed tests; `forecasting/interfaces.py` | **Convention fix:** CROWDSIM switched to occupancy at the END of each bucket (doc 10 §1.1) so every value in row t is known at issue time t; doc 10 → v0.2 corrects the §3.1 conservation index (doc was internally inconsistent; B3 unchanged). Figure regenerated | 4.2.1 |
 | 2026-11-20 | 3.4.3 | `tools/crowdsim/replay.py` (stdlib HTTP, adjustable speed-up, batches ≤ 1,000 rows) + end-to-end DB test; V1 run replayed into dev event 32 through the live API: 3,376 zone-minutes, 0 rejected, 2.0 s | **Phase 3 exit met.** Test isolation fix: a schema test read every observation in the table, broke once the dev DB held replayed rows | 4.1.1 |
 | 2026-11-20 | 3.4.2 | `tools/crowdsim/plot.py`; figure `reports/figures/crowdsim_v1_spring_fest_day1_regimea_seed2027-0.png` (SYNTHETIC, regime A placeholders, commit 527119b) | Eye check found a design flaw, fixed: "stay until the item ends" made exhibition visitors stay 5 h → only shows hold visitors (DESIGN §7). Remaining, kept on purpose (not tuned away): food court at its jam limit through the lunch window = demand above capacity under these placeholders | 3.4.3 |

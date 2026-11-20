@@ -6,6 +6,7 @@ Keeps SQL in the storage module; the API maps the returned rows to its response 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import func, literal_column, select
@@ -21,6 +22,7 @@ from crowdcast.storage.models import (
     Event,
     EventScheduleItem,
     ModelVersion,
+    Prediction,
     Venue,
     Zone,
     ZoneConnection,
@@ -181,3 +183,78 @@ def upsert_observations(
     flags = list(session.scalars(stmt))
     inserted = sum(1 for f in flags if f)
     return inserted, len(flags) - inserted
+
+
+# ---------------------------------------------------------------------- prediction cycle
+BASELINE_MODEL = {
+    "name": "B0_persistence",
+    "version": "1",
+    "model_family": "PERSISTENCE",
+    "artifact_path": "builtin:crowdcast.forecasting.baselines.b0_persistence",
+}
+
+
+def baseline_model_version(session: Session) -> int:
+    """Id of the built-in persistence model (created on first use; never marked active)."""
+    existing = session.scalar(
+        select(ModelVersion.model_version_id).where(
+            ModelVersion.name == BASELINE_MODEL["name"],
+            ModelVersion.version == BASELINE_MODEL["version"],
+        )
+    )
+    if existing is not None:
+        return existing
+    row = ModelVersion(**BASELINE_MODEL, feature_set=None, is_active=False)
+    session.add(row)
+    session.flush()
+    return row.model_version_id
+
+
+def active_model_version(session: Session) -> ModelVersion | None:
+    return session.scalar(select(ModelVersion).where(ModelVersion.is_active.is_(True)))
+
+
+def observation_window(
+    session: Session, event_id: int, origin: DataOrigin, start: datetime, end: datetime
+) -> list[CrowdObservation]:
+    """Observations of one origin with start <= bucket_start < end, in time order."""
+    stmt = (
+        select(CrowdObservation)
+        .where(
+            CrowdObservation.event_id == event_id,
+            CrowdObservation.data_origin == origin,
+            CrowdObservation.bucket_start >= start,
+            CrowdObservation.bucket_start < end,
+        )
+        .order_by(CrowdObservation.bucket_start)
+    )
+    return list(session.scalars(stmt))
+
+
+def observation_bucket_range(
+    session: Session, event_id: int, origin: DataOrigin
+) -> tuple[datetime | None, datetime | None]:
+    row = session.execute(
+        select(
+            func.min(CrowdObservation.bucket_start), func.max(CrowdObservation.bucket_start)
+        ).where(CrowdObservation.event_id == event_id, CrowdObservation.data_origin == origin)
+    ).one()
+    return row[0], row[1]
+
+
+PREDICTION_FIELDS = (
+    "target_time", "p10", "p50", "p90", "predicted_level", "risk_score", "is_fallback",
+)  # fmt: skip
+
+
+def upsert_predictions(session: Session, rows: list[dict[str, Any]]) -> int:
+    """Insert or update on (event, zone, issued_at, horizon, model) - a cycle can be re-run."""
+    if not rows:
+        return 0
+    ins = insert(Prediction).values(rows)
+    stmt = ins.on_conflict_do_update(
+        index_elements=["event_id", "zone_id", "issued_at", "horizon_min", "model_version_id"],
+        set_={f: ins.excluded[f] for f in PREDICTION_FIELDS},
+    )
+    session.execute(stmt)
+    return len(rows)
