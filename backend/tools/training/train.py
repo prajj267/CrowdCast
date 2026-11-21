@@ -23,6 +23,12 @@ import pandas as pd
 
 from crowdcast.common.config import REPO_ROOT
 from crowdcast.common.time import utc_now
+from crowdcast.forecasting.conformal import (
+    apply_offset,
+    conformal_offset,
+    conformity_scores,
+    coverage,
+)
 from crowdcast.forecasting.features import FeatureSet, feature_columns
 from crowdcast.forecasting.interfaces import HORIZONS
 from crowdcast.forecasting.xgb import (
@@ -101,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     t0 = time.perf_counter()
 
     boosters, best, metrics, columns = {}, {}, {}, []
+    offsets: dict[str, float] = {}
     for h in args.horizons:
         train = build_split(train_ids, infos, fs, h)
         val = build_split(val_ids, infos, fs, h)
@@ -110,6 +117,16 @@ def main(argv: list[str] | None = None) -> int:
         boosters[h] = booster
         best[str(h)] = int(booster.best_iteration)
         metrics[str(h)] = validation_metrics(val, quant, h)
+        # split-conformal offset (doc 10 §11), calibrated on the validation events; coverage on
+        # these same events is in-sample by construction, so it is NOT a result (7.3.3 measures
+        # coverage on held-out events)
+        actual = val["n_t"].to_numpy() + val["y"].to_numpy() * val["capacity_abs"].to_numpy()
+        offsets[str(h)] = conformal_offset(
+            conformity_scores(quant, actual, val["capacity_abs"].to_numpy())
+        )
+        metrics[str(h)]["coverage_conformal_in_sample"] = coverage(
+            apply_offset(quant, offsets[str(h)], val["capacity_abs"].to_numpy()), actual
+        )
         print(
             f"h={h:2d}: {len(train)} train rows, best iteration {booster.best_iteration}, "
             f"VALIDATION MAE p50 {metrics[str(h)]['mae_p50']:.2f} vs B0 "
@@ -138,6 +155,9 @@ def main(argv: list[str] | None = None) -> int:
         "git_commit": commit,
         "outflow_shares": shares_for_manifest(infos),
         "validation_metrics": metrics,
+        "conformal_offsets": offsets,
+        "conformal_note": "split-conformal CQR offsets (capacity-normalised) per horizon, "
+        "calibrated on the validation events (doc 10 §11)",
         "note": "metrics are on the VALIDATION split only; test splits untouched",
     }
     save_model(path, boosters, manifest)

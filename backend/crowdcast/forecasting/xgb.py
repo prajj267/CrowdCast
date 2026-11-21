@@ -6,7 +6,8 @@ loss. Predictions are mapped back with N = max(0, N(t) + C * y) and the three qu
 SORTED after that inverse transform, so they can never cross (doc 10 §6, FR-FC-02).
 
 A trained model is a directory: ``h5.json``, ``h15.json``, ``h30.json`` + ``manifest.json``
-(feature set, feature columns, outflow shares per venue, data hash, seed, git commit, metrics).
+(feature set, feature columns, outflow shares per venue, data hash, seed, git commit, metrics,
+and split-conformal offsets per horizon when calibrated - doc 10 §11, §13).
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ import numpy.typing as npt
 import pandas as pd
 import xgboost as xgb
 
+from crowdcast.forecasting.conformal import apply_offset
 from crowdcast.forecasting.features import Arr, FeatureSet
 
 QUANTILES = (0.1, 0.5, 0.9)
@@ -109,7 +111,9 @@ class QuantileForecaster:
         """(rows, 3) occupancy quantiles for feature ``rows`` built at ``horizon``."""
         change = predict_change(self.boosters[horizon], rows[self.columns])
         zone = rows["zone"].to_numpy()
-        return to_occupancy(rows["n_t"].to_numpy(), capacity[zone], change)
+        q = to_occupancy(rows["n_t"].to_numpy(), capacity[zone], change)
+        offset = self.manifest.get("conformal_offsets", {}).get(str(horizon))
+        return q if offset is None else apply_offset(q, float(offset), capacity[zone])
 
 
 def save_model(path: Path, boosters: dict[int, xgb.Booster], manifest: dict[str, Any]) -> None:

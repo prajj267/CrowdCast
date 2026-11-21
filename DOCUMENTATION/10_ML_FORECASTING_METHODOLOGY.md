@@ -268,6 +268,12 @@ Represent all zone signals as a matrix $\mathbf X(t) \in \mathbb R^{|V| \times d
 2. **Split-conformal calibration (CQR)** [37] on validation events: compute conformity scores $E = \max(\hat q_{0.1} - y,\; y - \hat q_{0.9})$, take the $(1-\alpha)(1+1/n)$ empirical quantile $\hat Q$, and widen intervals by $\hat Q$. Target coverage 80 %.
 3. Report empirical coverage and mean width on test ([16 §3](16_MODEL_EVALUATION.md)).
 
+Implementation notes (`crowdcast/forecasting/conformal.py`, WORKFLOW 7.3.3):
+- Scores are divided by zone capacity (the model's target scale, §6), giving one offset $\hat Q$ per horizon for zones of every size; the interval becomes $[\hat q_{0.1} - \hat Q C,\ \hat q_{0.9} + \hat Q C]$, floored at 0 with the median kept inside. $\hat Q < 0$ narrows an over-wide interval.
+- The offsets are stored per horizon in the model manifest (`conformal_offsets`, §13) and applied by the online cycle.
+- During development (validation split) coverage is measured by 2-fold cross-calibration **by event** (calibrate on one half of the validation events, measure on the other, then swap), because coverage on the calibration events themselves is ≈ 80 % by construction. On a test split the offsets come from all validation events.
+- The validation events are also used for early stopping; this is the documented use of the split (§8.1) and is one more reason coverage is measured on held-out events.
+
 Caveat: conformal guarantees assume exchangeability between calibration and test data, which time series and synthetic-to-real shift violate. Coverage is therefore *measured*, not assumed.
 
 ## 12. Online inference cycle

@@ -57,3 +57,22 @@ def test_missing_artifacts_are_reported(tmp_path: Path) -> None:
     (tmp_path / "manifest.json").write_text('{"horizons": [5, 15]}', encoding="utf-8")
     (tmp_path / "h5.json").write_text("{}", encoding="utf-8")
     assert artifacts_complete(tmp_path) == ["h15.json"]
+
+
+def test_stored_conformal_offset_is_applied_per_horizon(tmp_path: Path) -> None:
+    xt, yt = _toy(1000, 0)
+    xv, yv = _toy(100, 1)
+    booster = train_booster(xt, yt, xv, yv, seed=2027, params={"max_depth": 3})
+    manifest = {
+        "horizons": [5], "best_iteration": {"5": int(booster.best_iteration)},
+        "feature_set": "A1", "feature_columns": ["a", "b"],
+    }  # fmt: skip
+    rows = xv.assign(zone=0, n_t=50.0)
+    capacity = np.array([100.0])
+    save_model(tmp_path / "raw", {5: booster}, manifest)
+    save_model(tmp_path / "cal", {5: booster}, {**manifest, "conformal_offsets": {"5": 0.1}})
+    raw = load_model(tmp_path / "raw").predict(rows, 5, capacity)
+    cal = load_model(tmp_path / "cal").predict(rows, 5, capacity)
+    np.testing.assert_allclose(cal[:, 1], raw[:, 1])  # P50 unchanged
+    np.testing.assert_allclose(cal[:, 2], raw[:, 2] + 10.0)  # 0.1 x capacity 100
+    assert np.all(cal[:, 0] <= raw[:, 0])

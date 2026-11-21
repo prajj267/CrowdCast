@@ -31,6 +31,7 @@ import pandas as pd
 
 from crowdcast.common.config import REPO_ROOT
 from crowdcast.common.time import utc_now
+from crowdcast.forecasting.conformal import apply_offset, conformal_offset, conformity_scores
 from crowdcast.forecasting.features import FeatureSet, History, build_features, feature_columns
 from crowdcast.forecasting.interfaces import HORIZONS
 from crowdcast.forecasting.sources import venue_info
@@ -90,6 +91,42 @@ def baseline_predictions(rows: pd.DataFrame, horizon: int) -> dict[str, np.ndarr
     return {"B0": n, "B1": b1, "B2": n + horizon * slope, "B3": b3}
 
 
+# ---------------------------------------------------------------------- conformal (7.3.3)
+def actual_of(rows: pd.DataFrame) -> np.ndarray:
+    return np.asarray(
+        rows["n_t"].to_numpy() + rows["y"].to_numpy() * rows["capacity_abs"].to_numpy()
+    )
+
+
+def offset_on(rows: pd.DataFrame, q: np.ndarray) -> float:
+    return conformal_offset(conformity_scores(q, actual_of(rows), rows["capacity_abs"]))
+
+
+def conformalised(
+    target: pd.DataFrame,
+    q_target: np.ndarray,
+    calib: pd.DataFrame | None = None,
+    q_calib: np.ndarray | None = None,
+) -> np.ndarray:
+    """Split-conformal P10-P90 for the target rows (doc 10 §11).
+
+    With calibration rows (a test split: calib = validation) one offset from all of them.
+    Without (the validation split itself): 2-fold cross-calibration BY EVENT - each half of
+    the events is adjusted with the offset calibrated on the other half, so the reported
+    coverage is measured on events not used for calibration.
+    """
+    cap = target["capacity_abs"].to_numpy()
+    if calib is not None and q_calib is not None:
+        return apply_offset(q_target, offset_on(calib, q_calib), cap)
+    events = sorted(target["event_id"].unique())
+    half = target["event_id"].isin(events[::2]).to_numpy()
+    out = q_target.copy()
+    for part in (half, ~half):
+        off = offset_on(target[~part], q_target[~part])
+        out[part] = apply_offset(q_target[part], off, cap[part])
+    return out
+
+
 # ---------------------------------------------------------------------- metrics
 def per_event(
     rows: pd.DataFrame,
@@ -97,8 +134,10 @@ def per_event(
     horizon: int,
     p50: np.ndarray,
     quantiles: np.ndarray | None = None,
+    conformal: np.ndarray | None = None,
 ) -> list[dict[str, Any]]:
-    """MAE / RMSE (persons), and for quantile models pinball loss and P10-P90 coverage."""
+    """MAE / RMSE (persons); for quantile models pinball loss, P10-P90 coverage and width, raw
+    and after split-conformal calibration."""
     actual = rows["n_t"].to_numpy() + rows["y"].to_numpy() * rows["capacity_abs"].to_numpy()
     out = []
     for eid, idx in rows.groupby("event_id").indices.items():
@@ -125,6 +164,12 @@ def per_event(
                 )
             )
             rec["coverage_p10_p90"] = float(np.mean((a >= q[:, 0]) & (a <= q[:, 2])))
+            rec["width_p10_p90"] = float(np.mean(q[:, 2] - q[:, 0]))
+        if conformal is not None:
+            c = conformal[idx]
+            a = actual[idx]
+            rec["coverage_conformal"] = float(np.mean((a >= c[:, 0]) & (a <= c[:, 2])))
+            rec["width_conformal"] = float(np.mean(c[:, 2] - c[:, 0]))
         out.append(rec)
     return out
 
@@ -216,7 +261,14 @@ def main(argv: list[str] | None = None) -> int:
             q = to_occupancy(
                 target["n_t"], target["capacity_abs"], predict_change(booster, target[cols])
             )
-            records += per_event(target, f"xgb_{fs.value}", h, q[:, 1], q)
+            if args.split == "validation":
+                conf = conformalised(target, q)
+            else:
+                q_val = to_occupancy(
+                    val["n_t"], val["capacity_abs"], predict_change(booster, val[cols])
+                )
+                conf = conformalised(target, q, val, q_val)
+            records += per_event(target, f"xgb_{fs.value}", h, q[:, 1], q, conf)
             print(
                 f"h={h:2d} {fs.value:9s} best_it {booster.best_iteration:4d} "
                 f"({time.perf_counter() - t0:.0f} s)"
@@ -225,6 +277,9 @@ def main(argv: list[str] | None = None) -> int:
     table.to_csv(out / "per_event.csv", index=False)
     summary = table.groupby(["horizon", "model"])["mae"].mean().unstack("model").round(2)
     print(f"mean MAE over {args.split} events (persons):\n{summary}")
+    xgb_rows = table[table["model"].str.startswith("xgb_")]
+    cov = xgb_rows.groupby(["horizon", "model"])[["coverage_p10_p90", "coverage_conformal"]]
+    print(f"P10-P90 coverage raw / conformal (nominal 0.80):\n{cov.mean().round(3)}")
     (out / "manifest.json").write_text(
         json.dumps(
             {
