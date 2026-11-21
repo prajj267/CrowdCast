@@ -23,6 +23,7 @@ import hashlib
 import json
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -128,6 +129,17 @@ def per_event(
     return out
 
 
+# ---------------------------------------------------------------------- tuned parameters
+def load_tuned(path: Path, fs: FeatureSet, horizon: int, variant: str) -> dict[str, Any]:
+    """Tuned parameters of one cell (tools/training/tune.py output); refuses a file tuned on
+    the other data variant."""
+    d = json.loads(path.read_text(encoding="utf-8"))
+    if d["data"] != variant:
+        raise SystemExit(f"{path} was tuned on SYN-{d['data']}, not SYN-{variant}")
+    params: dict[str, Any] = d["params"][fs.value][str(horizon)]
+    return params
+
+
 # ---------------------------------------------------------------------- finals guard
 def check_final(dataset: str, models: list[str], seed: int) -> None:
     done = json.loads(FINALS.read_text(encoding="utf-8")) if FINALS.exists() else []
@@ -161,7 +173,12 @@ def main(argv: list[str] | None = None) -> int:
         default="clean",
         help="SYN-clean or SYN-noisy inputs (targets always clean)",
     )
+    parser.add_argument(
+        "--params", type=Path, help="best_params.json of a tuning run (default: untuned)"
+    )
     args = parser.parse_args(argv)
+    if args.params is not None and not args.params.is_absolute():
+        args.params = (Path.cwd() / args.params).resolve()
     commit = git_commit()
     if commit.endswith("(dirty working tree)"):
         print("uncommitted changes: commit first (results must come from committed code)")
@@ -192,7 +209,10 @@ def main(argv: list[str] | None = None) -> int:
             records += per_event(target, name, h, pred)
         for fs in args.feature_sets:
             cols = columns_of(fs)
-            booster = train_booster(train[cols], train["y"], val[cols], val["y"], seed=args.seed)
+            params = None if args.params is None else load_tuned(args.params, fs, h, args.data)
+            booster = train_booster(
+                train[cols], train["y"], val[cols], val["y"], seed=args.seed, params=params
+            )
             q = to_occupancy(
                 target["n_t"], target["capacity_abs"], predict_change(booster, target[cols])
             )
@@ -223,7 +243,9 @@ def main(argv: list[str] | None = None) -> int:
                 ),
                 "feature_sets": [fs.value for fs in args.feature_sets],
                 "horizons": args.horizons,
-                "params": "untuned defaults (forecasting/xgb.py DEFAULT_PARAMS) unless stated",
+                "params": "untuned defaults (forecasting/xgb.py DEFAULT_PARAMS)"
+                if args.params is None
+                else f"tuned: {args.params.relative_to(REPO_ROOT).as_posix()}",
                 "train_events": len(train_ids),
                 "target_events": len(target_ids),
                 "data_hash_train_val": data_hash(train_ids + val_ids, args.data),

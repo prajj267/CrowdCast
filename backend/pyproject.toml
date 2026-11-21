@@ -21,6 +21,7 @@ dependencies = [
     "pyarrow>=26.0.1",
     "xgboost>=3.4.1",
     "scikit-learn>=1.9.1",
+    "optuna>=5.1.0",
 ]
 
 [dependency-groups]
@@ -69,8 +70,8 @@ plugins = ["pydantic.mypy"]
 files = ["crowdcast", "tools", "tests"]
 
 [[tool.mypy.overrides]]
-# onnxruntime, shapely and scipy ship no type information (scipy-stubs not added).
-module = ["onnxruntime", "onnxruntime.*", "shapely", "shapely.*", "scipy", "scipy.*"]
+# onnxruntime, shapely, scipy and sklearn ship no type information (no stub packages added).
+module = ["onnxruntime", "onnxruntime.*", "shapely", "shapely.*", "scipy", "scipy.*", "sklearn.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------- pytest
