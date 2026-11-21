@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 7 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 7.1.1 (Phase 7)
+**Next task:** 7.3.1 run — validation ablation on SYN-clean, then SYN-noisy (Phase 7)
 
 ---
 
@@ -77,6 +77,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 | 2026-11-21 | [10 §5.4](DOCUMENTATION/10_ML_FORECASTING_METHODOLOGY.md) | `nbr_flow_to_i` = flow from neighbours over shared lines | Not built; `nbr_out_pressure` kept (zone outflows × shares estimated on training events) | The ingestion contract (AD-02) stores zone inflow/outflow, not per-connection flows, so the feature could not be computed online |
 | 2026-11-20 | [14 §2, §3.2/3.5/3.7](DOCUMENTATION/14_API_SPECIFICATION.md) | POST endpoints to create venues, zones, connections, events and schedule items | Read endpoints + status transitions only; configuration loaded from YAML (`tools/load_config.py`); amendments in doc 14 §6 | Solo scope: no polygon/venue editor (D1 scope note), YAML import already planned |
 | 2026-11-20 | [09 §2–4](DOCUMENTATION/09_COMPUTER_VISION_METHODOLOGY.md), WORKFLOW 1.4.3 | Whole frame resized to the detector input | **Tiled detection** (`crowdcast/vision/tiling.py`): overlapping tiles at the model input size (overlap 0.2), drop boxes cut at inner tile edges, one full-frame pass, merge NMS. **Provisional default: YOLOX-s + tiles at 5 FPS** (≈ 3 s processing per video second, offline); YOLOX-nano + tiles (≈ real time) as fast fallback. Final model choice by accuracy on MOT20 in 7.1 | Untiled models detect few of the small, distant people in 1080p wide shots (bench-20261120T134304Z: 0.9–8.5 detections/frame untiled vs 44.8–61.8 tiled); accuracy not yet measured |
+| 2026-11-21 | [12 §5.3](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md), [16 §2.1](DOCUMENTATION/16_MODEL_EVALUATION.md), WORKFLOW 7.2.2 | Occupancy noise m(ρ) = m0 + m1·ρ calibrated against density ρ (persons/m²) | ρ per public-data sample taken from doc 16's count-band ↔ density-band pairing (band midpoints 0.25 / 1.0 / 2.25 / 3.5); crossing parameters from 1.9 min of MOT20 (p_det essentially from MOT20-03 alone; r_fp = 0 with a weak upper bound) | The public datasets have no calibrated ground-plane areas; this is an assumption and is reported as one. 7.2.1 and 7.2.4 were already done in Phase 5 (V2/V3, frozen splits) |
 
 ---
 
@@ -254,15 +255,15 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ## Phase 7 — Data, experiments and evaluation (MS4)
 
 ### 7.1 Public data and CV evaluation
-- [ ] 7.1.1 Download Mall, ShanghaiTech B (test split) and 2 MOT20 sequences; check disk space first; keep them outside git
-- [ ] 7.1.2 Count MAE by density band ([16 §2.1](DOCUMENTATION/16_MODEL_EVALUATION.md)); MOT20 tracking sanity check
-- [ ] 7.1.3 Flow error (O2): draw virtual counting lines on MOT20 scenes and compare detected crossings with crossings derived from the annotated ground-truth tracks (if feasible; otherwise log it as a deviation)
+- [x] 7.1.1 Download Mall, ShanghaiTech B (test split) and 2 MOT20 sequences; check disk space first; keep them outside git
+- [x] 7.1.2 Count MAE by density band ([16 §2.1](DOCUMENTATION/16_MODEL_EVALUATION.md)); MOT20 tracking sanity check
+- [x] 7.1.3 Flow error (O2): draw virtual counting lines on MOT20 scenes and compare detected crossings with crossings derived from the annotated ground-truth tracks (if feasible; otherwise log it as a deviation)
 
 ### 7.2 Synthetic datasets
-- [ ] 7.2.1 CROWDSIM v2: V2 and V3 topologies (T4.1)
-- [ ] 7.2.2 Noise model ([12 §5.3](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md)): occupancy parameters (m₀, m₁, σ_r) calibrated from count errors on public datasets (7.1.2); crossing parameters (p_det, r_fp) from 7.1.3 if it was feasible. Anything uncalibrated stays a labelled placeholder
-- [ ] 7.2.3 Generate SYN-clean and SYN-noisy (volume per [experimental_design §2](RESEARCH/experimental_design.md), or a documented reduction)
-- [ ] 7.2.4 **Freeze `splits.json` (seed 2027) and commit it before any training run**
+- [x] 7.2.1 CROWDSIM v2: V2 and V3 topologies (T4.1)
+- [x] 7.2.2 Noise model ([12 §5.3](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md)): occupancy parameters (m₀, m₁, σ_r) calibrated from count errors on public datasets (7.1.2); crossing parameters (p_det, r_fp) from 7.1.3 if it was feasible. Anything uncalibrated stays a labelled placeholder
+- [x] 7.2.3 Generate SYN-clean and SYN-noisy (volume per [experimental_design §2](RESEARCH/experimental_design.md), or a documented reduction)
+- [x] 7.2.4 **Freeze `splits.json` (seed 2027) and commit it before any training run**
 
 ### 7.3 Ablation study ([experimental_design §4–7](RESEARCH/experimental_design.md))
 - [ ] 7.3.1 Ablation runner: configs A1–A4 and A4\NBR × horizons 5/15/30 × XGBoost (RF optional); baselines B0–B3 on every dataset
@@ -336,6 +337,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-21 | 7.1.1–7.1.3, 7.2.2, 7.2.3 | Public data (Mall, SHT-B test, MOT20-01/03; MOT20 archive deleted after extraction); count MAE by band (`eval_counts`), flow error on virtual lines (`eval_flows`); noise model calibrated (`calibrate_noise` → `configs/crowdsim/noise_calibrated.yaml`); SYN-noisy for all 180 events (`make_noisy`); dataset/ablation `--data clean\|noisy` with the clean target kept | Negative result: SHT-B relative MAE 0.711. Count runs recorded the end commit (logged with justification; tools fixed). Tests needing Postgres skipped this session (Docker not running; no DB code changed) | 7.3.1 validation ablation (clean, then noisy, one at a time) |
 | 2026-11-21 | 6.3.3, 6.3.4, MS3 | `tools/vision/run_camera.py` (camera YAML → pipeline → REAL observations via the ingestion API, aggregates-only summary); Shibuya demo venue/camera/event configs (illustrative halves, illustrative event time); fixed-clip regression test (first 5 s, tiled YOLOX-s, frozen aggregates). **MS3 met:** the public clip produced REAL observations end to end (2 zone-minutes, 0 rejected; logged as a demo, no ground truth) | To place polygons, one downscaled frame was viewed in the scratch folder and deleted immediately (never in the repo or DB). Untiled detection found almost nobody in the dense clip, so the regression test uses tiling | 7.1.1 |
 | 2026-11-21 | 6.2.3, 6.3.1, 6.3.2 (+ 6.3.3 logic) | `aggregation/counting.py`: foot-point occupancy per region, debounced line crossings (band 10 px, one per direction per 10 s, step-back cancels), line orientation from the camera's regions, minute aggregation (median / κ, flows, LOW_CONFIDENCE / PARTIAL); `vision/pipeline.py` frames → detector → ByteTrack → rows; 13 tests incl. a privacy test (pipeline writes nothing to disk) | A test I wrote first mis-stated rule 3 (out-then-in within 10 s is a step-back, cancelled) — test corrected, code was right. Flows for zones without a region in the camera are not emitted as rows | 6.3.3 |
 | 2026-11-21 | 6.2.1, 6.2.2 | 6.2.1 = existing `PersonDetector` / `YoloxOnnxDetector`; `vision/tracking.py` ByteTracker (doc 09 §5 thresholds, buffer 30 frames, unconfirmed tracks, geometry-only output with foot point); 6 tests on synthetic boxes | In-house ByteTrack (deviation logged); scipy treated as untyped in mypy | 6.3.1 |
