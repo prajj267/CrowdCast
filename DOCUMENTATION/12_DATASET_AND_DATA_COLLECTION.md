@@ -31,20 +31,21 @@ Tags: **[V]** facts confirmed on the dataset page during preparation; **[K]** fr
 
 | Dataset | Source / access | Licence / terms | Size | Annotation | Intended application | Limitations for CROWDCAST |
 |---|---|---|---|---|---|---|
-| **ShanghaiTech** (Part A, Part B) [1] | Released with the MCNN paper; widely mirrored (e.g. GitHub, Kaggle) | No explicit licence found on the original distribution — **treat as research-only** and cite [1] [K] | Part A 482 images, Part B 716 images; ≈ 330 k heads [K] | Head points (`.mat`) | Single-image counting | Still images; Part A internet images unlike our cameras; Part B closer (street CCTV-like) |
+| **ShanghaiTech** (Part A, Part B) [1] | Authors' repository github.com/desenzhou/ShanghaiTechDataset (Dropbox / Baidu links, "updated in 2024") [V] | The repository carries a **BSD 2-Clause** licence file; it does not say whether that covers the images — **treated as research-only**, cite [1] [V, checked 2026-11-21] | Part A 482 images, Part B 716 images; ≈ 330 k heads [K]. Downloaded archive (A + B together, B not separable): 174.4 MB; Part B test = 316 images + 316 GT files [V, 2026-11-21] | Head points (`.mat`) | Single-image counting | Still images; Part A internet images unlike our cameras; Part B closer (street CCTV-like) |
 | **UCF-QNRF** [3] | https://www.crcv.ucf.edu/data/ucf-qnrf/ [V] | Research use per CRCV page — confirm [K] | 1,535 images, ≈ 1.25 M heads [K] | Head points | Extremely dense counting | Densities far above typical college events; images only |
 | **JHU-CROWD++** [4] | http://www.crowd-counting.com [V] | **Academic and non-commercial use** [V] | 4,372 images, 1.51 M annotations [V] | Head points + approximate box sizes + image-level labels (weather, distractors) | Robust counting across conditions | Images only; non-commercial |
 | **NWPU-Crowd** [5] | Project page / benchmark site | Research use — confirm [K] | 5,109 images, ≈ 2.13 M heads [K] | Points + boxes | Counting & localisation | Images only |
-| **Mall** [9] | https://personal.ie.cuhk.edu.hk/~ccloy/downloads_mall_dataset.html [V] | Research use — confirm on page | 2,000 consecutive frames, > 60,000 labelled pedestrians [V] | Head points per frame | Localised counting in a fixed scene | Short (minutes), indoor, one camera — useful as a **temporal counting test clip** |
+| **Mall** [9] | https://personal.ie.cuhk.edu.hk/~ccloy/downloads_mall_dataset.html [V] | "Intended for research purposes only … cannot be used commercially"; cite the listed publications [V, 2026-11-21] | 2,000 consecutive frames 640×480, > 60,000 labelled pedestrians, ROI mask; archive 91.8 MB [V] | Head points per frame | Localised counting in a fixed scene | Short (minutes), indoor, one camera — useful as a **temporal counting test clip** |
 | **UCSD Pedestrian** [10] | SVCL, UC San Diego | Research use — confirm [K] | 2,000 frames, low resolution [K] | Counts / points | Video counting | Sparse, low-res walkway |
 | **FDST** [11] | Released with paper (GitHub) | Confirm on repository [K] | 100 videos, 13 scenes, 15,000 frames [K] | Head points per frame | Video crowd counting | Short clips; scenes not events |
-| **MOT20** [17] | https://motchallenge.net | CC BY-NC-SA 3.0 per MOTChallenge — confirm [K] | 8 crowded sequences [K] | Full-body boxes + IDs | Crowded tracking | Small number of scenes |
+| **MOT20** [17] | https://motchallenge.net/data/MOT20/ [V] | **CC BY-NC-SA 3.0** (stated on the page) [V, 2026-11-21] | 8 sequences (4 train with ground truth, 4 test); full archive 5.0 GB, labels archive 19.2 MB (page states 13.9 MB). Per-sequence MP4s on the site are **half resolution** (e.g. 960×540 for 1920×1080), so the original frames from the full archive are used [V] | Full-body boxes + IDs | Crowded tracking | Small number of scenes |
 | **CrowdHuman** [18] | Dataset website | Non-commercial research — confirm [K] | 15,000 train / 4,370 val / 5,000 test images [K] | Full, visible and head boxes | Detection under occlusion | Images only; useful if we fine-tune a head detector (extension) |
 
 **Usage plan:**
 - **Mandatory:** Mall (temporal counting test), ShanghaiTech Part B test split (counting under CCTV-like views), MOT20 (2 sequences, tracker sanity check).
 - **Optional:** JHU-CROWD++ subsets (weather/night robustness), CrowdHuman (head-detector fine-tuning if needed).
 - **No public dataset is used to train forecasting models.**
+- **Downloaded 2026-11-21** (WORKFLOW 7.1.1) to git-ignored `data/public/`: Mall (whole), ShanghaiTech archive (Part B test extracted), MOT20 full archive (only MOT20-01 and MOT20-03 kept, original resolution) + labels.
 
 ## 3. Pedestrian simulators (for synthetic data)
 

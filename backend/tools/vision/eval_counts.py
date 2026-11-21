@@ -108,11 +108,11 @@ def count(detector: PersonDetector, image: ImageBGR, roi: np.ndarray | None) -> 
     return int(roi[hy, hx].sum())
 
 
-def make_detector(model: str, tiled: bool) -> PersonDetector:
+def make_detector(model: str, tiled: bool, score: float = COUNT_SCORE) -> PersonDetector:
     base = YoloxOnnxDetector(
         MODEL_DIR / f"{model}.onnx",
         preprocessing=Preprocessing(load_manifest()["preprocessing"]),
-        score_threshold=COUNT_SCORE,
+        score_threshold=score,
     )
     return TiledDetector(base, tile=base.input_hw[0]) if tiled else base
 
@@ -122,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--datasets", nargs="*", default=list(DATASETS))
     parser.add_argument("--configs", nargs="*", default=list(CONFIGS))
     args = parser.parse_args(argv)
+    commit = git_commit()  # recorded at the START: later edits cannot change it
     run = utc_now().strftime("%Y%m%dT%H%M%SZ")
     out_dir = REPO_ROOT / "runs" / "cv_eval" / run
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -158,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(
             {
                 "run": run,
-                "git_commit": git_commit(),
+                "git_commit": commit,
                 "data_origin": "REAL (public datasets)",
                 "bands": "by TRUE count per image/region (areas not calibrated, doc 16 §2.1)",
                 "count_score": COUNT_SCORE,
