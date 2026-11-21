@@ -190,6 +190,20 @@ def test_target_is_capacity_normalised_change_and_drops_the_tail(
     assert r0["y"] == pytest.approx(expected)
 
 
+def test_target_uses_the_truth_series_when_inputs_are_noisy(
+    sim: tuple[SimResult, VenueInfo, History],
+) -> None:
+    # SYN-noisy (doc 12 §5.3): features and N_obs(t) from the noisy inputs, N(t+h) from truth
+    _, info, hist = sim
+    h = 15
+    noisy = replace(hist, n=hist.n + 3.0)
+    rows = add_target(build_features(noisy, info, FeatureSet.A1, h), noisy, info, h, hist.n)
+    r0 = rows.iloc[200]
+    k, z = int(r0["k"]), int(r0["zone"])
+    expected = (hist.n[k + h, z] - (hist.n[k, z] + 3.0)) / info.capacity[z]
+    assert r0["y"] == pytest.approx(expected)
+
+
 def test_outflow_shares_from_training_flows() -> None:
     codes = ("A", "B", "C")
     pi = outflow_shares(codes, [("A", "B", 6), ("A", "C", 2), ("A", "OUTSIDE", 2), ("B", "A", 5)])

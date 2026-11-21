@@ -43,9 +43,15 @@ def run_dir(event_id: str, regime: str = "a") -> Path:
     return DATA / "crowdsim" / f"regime_{regime}" / event_id
 
 
-def load_history(event_id: str, codes: tuple[str, ...], regime: str = "a") -> History:
+VARIANT_FILES = {"clean": "zone_minutes.parquet", "noisy": "zone_minutes_noisy.parquet"}
+
+
+def load_history(
+    event_id: str, codes: tuple[str, ...], regime: str = "a", variant: str = "clean"
+) -> History:
+    """SYN-clean (true states) or SYN-noisy (calibrated CV-like noise) inputs of one event."""
     event = load_event_config(DATA / "events" / f"{event_id}.yaml")
-    zm = pd.read_parquet(run_dir(event_id, regime) / "zone_minutes.parquet")
+    zm = pd.read_parquet(run_dir(event_id, regime) / VARIANT_FILES[variant])
 
     def grid(col: str) -> np.ndarray:
         wide = zm.pivot(index="bucket_start", columns="zone_code", values=col)
@@ -91,13 +97,19 @@ def build_split(
     infos: dict[str, VenueInfo],
     feature_set: FeatureSet,
     horizon: int,
+    variant: str = "clean",
 ) -> pd.DataFrame:
+    """Feature rows of the events; with variant "noisy" the inputs are SYN-noisy while the
+    target stays the clean simulator occupancy (doc 12 §5.3)."""
     frames = []
     for eid in ids:
         venue = eid.split("_")[0]
         info = infos[venue]
-        hist = load_history(eid, info.codes)
-        rows = add_target(build_features(hist, info, feature_set, horizon), hist, info, horizon)
+        hist = load_history(eid, info.codes, variant=variant)
+        truth = None if variant == "clean" else load_history(eid, info.codes).n
+        rows = add_target(
+            build_features(hist, info, feature_set, horizon), hist, info, horizon, truth
+        )
         rows.insert(0, "event_id", eid)
         rows.insert(1, "venue", venue)
         rows["capacity_abs"] = info.capacity[rows["zone"].to_numpy()]
@@ -105,12 +117,14 @@ def build_split(
     return pd.concat(frames, ignore_index=True)
 
 
-def data_hash(ids: list[str]) -> str:
+def data_hash(ids: list[str], variant: str = "clean") -> str:
     """sha256 over the event ids and the bytes of their simulator outputs."""
     h = hashlib.sha256()
     for eid in sorted(ids):
         h.update(eid.encode())
         h.update((run_dir(eid) / "zone_minutes.parquet").read_bytes())
+        if variant != "clean":
+            h.update((run_dir(eid) / VARIANT_FILES[variant]).read_bytes())
         h.update((DATA / "events" / f"{eid}.yaml").read_bytes())
     return h.hexdigest()
 

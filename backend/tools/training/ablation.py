@@ -63,14 +63,16 @@ def columns_of(fs: FeatureSet) -> list[str]:
     return feature_columns(build_features(hist, info, fs, 5))
 
 
-def cached_split(split: str, ids: list[str], horizon: int, train_ids: list[str]) -> pd.DataFrame:
-    """A4 feature rows (+ target) for one split and horizon, cached by data hash."""
-    key = hashlib.sha256((data_hash(ids) + data_hash(train_ids)).encode()).hexdigest()[:16]
-    path = DATASETS / "regime_a" / "A4" / f"h{horizon}_{split}_{key}.parquet"
+def cached_split(
+    split: str, ids: list[str], horizon: int, train_ids: list[str], variant: str = "clean"
+) -> pd.DataFrame:
+    """A4 feature rows (+ target) for one split, horizon and data variant, cached by hash."""
+    key = hashlib.sha256((data_hash(ids, variant) + data_hash(train_ids)).encode()).hexdigest()[:16]
+    path = DATASETS / "regime_a" / variant / "A4" / f"h{horizon}_{split}_{key}.parquet"
     if path.exists():
         return pd.read_parquet(path)
     venues = sorted({e.split("_")[0] for e in ids})
-    rows = build_split(ids, venue_infos(train_ids, venues), FeatureSet.A4, horizon)
+    rows = build_split(ids, venue_infos(train_ids, venues), FeatureSet.A4, horizon, variant)
     path.parent.mkdir(parents=True, exist_ok=True)
     rows.to_parquet(path, index=False)
     return rows
@@ -153,6 +155,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--feature-sets", nargs="*", type=FeatureSet, default=list(FeatureSet))
     parser.add_argument("--horizons", nargs="*", type=int, default=list(HORIZONS))
     parser.add_argument("--seed", type=int, default=2027)
+    parser.add_argument(
+        "--data",
+        choices=["clean", "noisy"],
+        default="clean",
+        help="SYN-clean or SYN-noisy inputs (targets always clean)",
+    )
     args = parser.parse_args(argv)
     commit = git_commit()
     if commit.endswith("(dirty working tree)"):
@@ -173,12 +181,12 @@ def main(argv: list[str] | None = None) -> int:
     records: list[dict[str, Any]] = []
     t0 = time.perf_counter()
     for h in args.horizons:
-        train = cached_split("train", train_ids, h, train_ids)
-        val = cached_split("validation", val_ids, h, train_ids)
+        train = cached_split("train", train_ids, h, train_ids, args.data)
+        val = cached_split("validation", val_ids, h, train_ids, args.data)
         target = (
             val
             if args.split == "validation"
-            else cached_split(args.split, target_ids, h, train_ids)
+            else cached_split(args.split, target_ids, h, train_ids, args.data)
         )
         for name, pred in baseline_predictions(target, h).items():
             records += per_event(target, name, h, pred)
@@ -206,13 +214,19 @@ def main(argv: list[str] | None = None) -> int:
                 "seed": args.seed,
                 "git_commit": commit,
                 "data_origin": "SYNTHETIC",
-                "data": "SYN-clean (true simulator states as inputs), CROWDSIM regime A",
+                "data": f"SYN-{args.data} inputs (targets: true simulator states), "
+                "CROWDSIM regime A"
+                + (
+                    "; noise: configs/crowdsim/noise_calibrated.yaml"
+                    if args.data == "noisy"
+                    else ""
+                ),
                 "feature_sets": [fs.value for fs in args.feature_sets],
                 "horizons": args.horizons,
                 "params": "untuned defaults (forecasting/xgb.py DEFAULT_PARAMS) unless stated",
                 "train_events": len(train_ids),
                 "target_events": len(target_ids),
-                "data_hash_train_val": data_hash(train_ids + val_ids),
+                "data_hash_train_val": data_hash(train_ids + val_ids, args.data),
             },
             indent=1,
         ),

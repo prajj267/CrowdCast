@@ -356,18 +356,27 @@ def _neighbour_features(
     return out
 
 
-def add_target(rows: pd.DataFrame, hist: History, venue: VenueInfo, horizon: int) -> pd.DataFrame:
-    """y = (N(t+h) - N(t)) / C (doc 10 §6); rows whose target lies beyond the data are dropped.
+def add_target(
+    rows: pd.DataFrame,
+    hist: History,
+    venue: VenueInfo,
+    horizon: int,
+    truth: Arr | None = None,
+) -> pd.DataFrame:
+    """y = (N_true(t+h) - N(t)) / C (doc 10 §6); rows whose target lies beyond the data drop.
 
-    For training only: the target uses the TRUE future occupancy of the same event.
+    For training only. ``N(t)`` is the observed input occupancy (``hist.n``); ``truth`` is the
+    true occupancy series when inputs are noisy (SYN-noisy, doc 12 §5.3) - targets always stay
+    the clean simulator N. Converting back with N(t) + C * y then predicts the TRUE N(t+h).
     """
     n = forward_fill(hist.n)
+    target_series = n if truth is None else forward_fill(truth)
     length = n.shape[0]
     k = rows["k"].to_numpy()
     z = rows["zone"].to_numpy()
     keep = (k + horizon) < length
     future = np.full(len(rows), np.nan)
-    future[keep] = n[k[keep] + horizon, z[keep]]
+    future[keep] = target_series[k[keep] + horizon, z[keep]]
     y = (future - n[k, z]) / venue.capacity[z]
     out = rows.assign(y=y)
     kept: pd.DataFrame = out[keep & ~np.isnan(y)].reset_index(drop=True)
