@@ -11,6 +11,9 @@ import { Home, NotBuiltYet } from "./routes/pages";
 const PredictionsPage = lazy(() =>
   import("./features/predictions/PredictionsPage").then((m) => ({ default: m.PredictionsPage })),
 );
+const HistoryPage = lazy(() =>
+  import("./features/history/HistoryPage").then((m) => ({ default: m.HistoryPage })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } },
@@ -34,7 +37,14 @@ export default function App() {
               }
             />
             <Route path="alerts" element={<AlertsPage />} />
-            <Route path="history" element={<NotBuiltYet title="History" task="8" />} />
+            <Route
+              path="history"
+              element={
+                <Suspense fallback={<p className="text-muted">Loading…</p>}>
+                  <HistoryPage />
+                </Suspense>
+              }
+            />
             <Route path="event" element={<NotBuiltYet title="Event & venue" task="8" />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

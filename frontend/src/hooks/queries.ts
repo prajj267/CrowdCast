@@ -83,6 +83,24 @@ export function useHistory(
   });
 }
 
+/** Issued forecasts of one zone and horizon joined with what happened (doc 14 §3.11). */
+export function useZoneTimeline(eventId: number, zoneId: number | undefined, horizon: number) {
+  return useQuery({
+    queryKey: ["timeline", eventId, zoneId, horizon],
+    enabled: zoneId !== undefined,
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/predictions/{event_id}/zones/{zone_id}", {
+          params: {
+            path: { event_id: eventId, zone_id: zoneId as number },
+            query: { horizon_min: [horizon] },
+          },
+        }),
+      ),
+    refetchInterval: 30_000,
+  });
+}
+
 export function useSchedule(eventId: number) {
   return useQuery({
     queryKey: ["schedule", eventId],

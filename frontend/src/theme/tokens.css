@@ -17,6 +17,13 @@
   --lvl-critical: #c62828;
   --unknown: #808a9c;
   --synthetic: #6d4bd1;
+  /* categorical series (History chart, max 4 at once; dataviz reference palette, validated
+     2026-11-22 light on #fcfcfb and dark on --surface: CVD and normal-vision checks pass;
+     light aqua/yellow < 3:1 -> lines carry direct labels and the peaks table is the table view) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,6 +40,10 @@
     --lvl-critical: #ff5252;
     --unknown: #6b7385;
     --synthetic: #a48bff;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
   }
 }
 
