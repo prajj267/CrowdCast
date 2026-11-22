@@ -2,8 +2,8 @@
  * Active alerts (doc 15 §2.3): sorted by level, then onset; acknowledge / resolve. Relative
  * times use the event clock (as_of), not the wall clock, so replays read correctly.
  */
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, unwrap, type Schemas } from "../../api/client";
+import type { Schemas } from "../../api/client";
+import { useAlertAction } from "../../hooks/mutations";
 import { LevelShape } from "../../components/LevelBadge";
 import type { Level } from "../../components/levels";
 
@@ -34,17 +34,7 @@ export function AlertList({
   alerts: Alert[];
   asOf: string | null | undefined;
 }) {
-  const qc = useQueryClient();
-  const act = useMutation({
-    mutationFn: async ({ id, action }: { id: number; action: "acknowledge" | "resolve" }) =>
-      unwrap(
-        await api.POST(`/api/alerts/{alert_id}/${action}`, {
-          params: { path: { alert_id: id } },
-          body: {},
-        }),
-      ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts", eventId] }),
-  });
+  const act = useAlertAction(eventId);
 
   const active = alerts
     .filter((a) => a.status !== "RESOLVED")

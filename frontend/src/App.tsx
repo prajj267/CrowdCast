@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AlertsPage } from "./features/alerts/AlertsPage";
 import { LivePage } from "./features/live/LivePage";
 
 import { Shell } from "./routes/Shell";
@@ -32,7 +33,7 @@ export default function App() {
                 </Suspense>
               }
             />
-            <Route path="alerts" element={<NotBuiltYet title="Alerts" task="8" />} />
+            <Route path="alerts" element={<AlertsPage />} />
             <Route path="history" element={<NotBuiltYet title="History" task="8" />} />
             <Route path="event" element={<NotBuiltYet title="Event & venue" task="8" />} />
           </Route>

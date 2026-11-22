@@ -3,7 +3,7 @@
  * state and alerts every 5 s, predictions every 10 s. TanStack pauses interval refetching while
  * the tab is hidden (refetchIntervalInBackground defaults to false).
  */
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api, unwrap } from "../api/client";
 
 export function useEvents() {
@@ -93,6 +93,37 @@ export function useSchedule(eventId: number) {
         }),
       ),
     staleTime: 5 * 60_000,
+  });
+}
+
+export interface AlertFilters {
+  status: ("OPEN" | "ACKNOWLEDGED" | "RESOLVED")[];
+  level: "ELEVATED" | "HIGH" | "CRITICAL" | null;
+  zoneId: number | null;
+}
+
+/** Filtered alert history, newest first, paged with the API cursor ("Load more"). */
+export function useAlertHistory(eventId: number, f: AlertFilters) {
+  return useInfiniteQuery({
+    queryKey: ["alerts", eventId, f],
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) =>
+      unwrap(
+        await api.GET("/api/alerts/{event_id}", {
+          params: {
+            path: { event_id: eventId },
+            query: {
+              status: f.status.length ? f.status : null,
+              level: f.level,
+              zone_id: f.zoneId,
+              limit: 100,
+              cursor: pageParam,
+            },
+          },
+        }),
+      ),
+    getNextPageParam: (last) => last.next_cursor,
+    refetchInterval: 5_000,
   });
 }
 
