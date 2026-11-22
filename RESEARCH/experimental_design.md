@@ -77,6 +77,7 @@ Primary: per-event MAE at each horizon. Secondary: RMSE, normalised MAE, peak-pe
 
 - **Post-release periods**: 30 min after any upstream schedule item ends (H4).
 - **Peak periods**: true $u \ge 0.6$.
+- *Implementation (7.3.5):* both strata are defined on the forecast **target** minute $t+h$. Post-release uses the *published* schedule of zones upstream in the venue graph (an item end $e$ with $t+h-30 < e \le t+h$), derived from the A4 schedule columns of the upstream zones at issue time. Each per-event row gets the MAE over its stratum minutes (`mae_peak`, `mae_post_release`), and an event with no such minutes is left out of that paired test. The bootstrap CI is the percentile interval. Code: `backend/tools/training/stats.py`, `ablation.py`.
 - **By zone type**: corridors vs stages vs food areas.
 - **By density band** of CV input quality (REAL).
 

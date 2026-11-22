@@ -10,7 +10,8 @@ RESEARCH/experimental_design.md §4-7; CLAUDE.md §5).
   ONCE per (dataset, feature set, seed): finals are registered and repeats are refused.
 
 Output: runs/ablation/<run>/per_event.csv (one row per event x horizon x model - the unit of
-the paired Wilcoxon tests, 7.3.5) + manifest.json.
+the paired Wilcoxon tests, 7.3.5; with MAE in the peak and post-release strata,
+experimental_design §8) + manifest.json. Statistics: tools/training/stats.py.
 
 Usage (from backend/, clean tree):
   uv run python -u -m tools.training.ablation --split validation
@@ -46,6 +47,8 @@ RUNS = REPO_ROOT / "runs" / "ablation"
 FINALS = RUNS / "finals.json"
 TEST_SPLITS = ("test_in_venue", "test_new_venue")
 B3_CAP = 1.5
+POST_RELEASE_MIN = 30.0  # experimental_design §8: 30 min after an upstream item ends (H4)
+PEAK_U = 0.6  # experimental_design §8: peak periods = true u >= 0.6
 
 
 # ---------------------------------------------------------------------- feature cache
@@ -127,7 +130,47 @@ def conformalised(
     return out
 
 
+# ---------------------------------------------------------------------- strata (7.3.5)
+def upstream_adjacency(venues: list[str]) -> dict[str, np.ndarray]:
+    """Directed zone adjacency per venue; a[j, i] > 0 means j is upstream of i."""
+    return {
+        v: venue_info(load_venue_config(REPO_ROOT / "configs" / "venues" / f"{v}.yaml")).adjacency
+        for v in venues
+    }
+
+
+def post_release_mask(
+    rows: pd.DataFrame, horizon: int, adjacency: dict[str, np.ndarray]
+) -> np.ndarray:
+    """True where the forecast TARGET minute t + h lies within 30 min after a PUBLISHED schedule
+    item ended in an upstream zone, i.e. an item end e with t + h - 30 < e <= t + h.
+
+    Derived from the A4 schedule columns of the upstream zone at issue time t:
+    e <= t  -> min_since_last_end < 30 - h (the most recent end is the one that counts);
+    t < e <= t + h -> ends_within_h.
+    """
+    own = (rows["min_since_last_end"].to_numpy() < POST_RELEASE_MIN - horizon) | (
+        rows["ends_within_h"].to_numpy() > 0
+    )
+    out = np.zeros(len(rows), dtype=bool)
+    for venue, idx in rows.groupby("venue").indices.items():
+        a = (adjacency[str(venue)] > 0).astype(np.float64)
+        sub = rows.iloc[idx]
+        key = pd.MultiIndex.from_arrays([sub["event_id"], sub["k"], sub["zone"]])
+        flags = pd.Series(own[idx].astype(np.float64), index=key).unstack("zone", fill_value=0)
+        flags = flags.reindex(columns=range(a.shape[0]), fill_value=0.0)
+        hit = pd.DataFrame(flags.to_numpy() @ a > 0, index=flags.index, columns=flags.columns)
+        stacked = hit.stack()
+        out[idx] = stacked.reindex(key).to_numpy(dtype=bool)
+    return out
+
+
 # ---------------------------------------------------------------------- metrics
+def _stratum_mae(err: np.ndarray, mask: np.ndarray) -> tuple[float, int]:
+    n = int(mask.sum())
+    return (float(np.mean(np.abs(err[mask]))) if n else float("nan")), n
+
+
 def per_event(
     rows: pd.DataFrame,
     model: str,
@@ -135,13 +178,17 @@ def per_event(
     p50: np.ndarray,
     quantiles: np.ndarray | None = None,
     conformal: np.ndarray | None = None,
+    post_release: np.ndarray | None = None,
 ) -> list[dict[str, Any]]:
-    """MAE / RMSE (persons); for quantile models pinball loss, P10-P90 coverage and width, raw
-    and after split-conformal calibration."""
+    """MAE / RMSE (persons), plus MAE in the peak (true u >= 0.6) and post-release strata
+    (NaN when an event has no such rows); for quantile models pinball loss, P10-P90 coverage
+    and width, raw and after split-conformal calibration."""
     actual = rows["n_t"].to_numpy() + rows["y"].to_numpy() * rows["capacity_abs"].to_numpy()
+    peak = actual / rows["capacity_abs"].to_numpy() >= PEAK_U
     out = []
     for eid, idx in rows.groupby("event_id").indices.items():
         err = p50[idx] - actual[idx]
+        mae_peak, n_peak = _stratum_mae(err, peak[idx])
         rec: dict[str, Any] = {
             "event_id": eid,
             "venue": str(eid).split("_")[0],
@@ -151,7 +198,11 @@ def per_event(
             "mae": float(np.mean(np.abs(err))),
             "rmse": float(np.sqrt(np.mean(err**2))),
             "bias": float(np.mean(err)),
+            "mae_peak": mae_peak,
+            "rows_peak": n_peak,
         }
+        if post_release is not None:
+            rec["mae_post_release"], rec["rows_post_release"] = _stratum_mae(err, post_release[idx])
         if quantiles is not None:
             q = quantiles[idx]
             a = actual[idx]
@@ -241,6 +292,7 @@ def main(argv: list[str] | None = None) -> int:
     out = RUNS / run
     out.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, Any]] = []
+    adjacency = upstream_adjacency(sorted({e.split("_")[0] for e in target_ids}))
     t0 = time.perf_counter()
     for h in args.horizons:
         train = cached_split("train", train_ids, h, train_ids, args.data)
@@ -250,8 +302,9 @@ def main(argv: list[str] | None = None) -> int:
             if args.split == "validation"
             else cached_split(args.split, target_ids, h, train_ids, args.data)
         )
+        post = post_release_mask(target, h, adjacency)
         for name, pred in baseline_predictions(target, h).items():
-            records += per_event(target, name, h, pred)
+            records += per_event(target, name, h, pred, post_release=post)
         for fs in args.feature_sets:
             cols = columns_of(fs)
             params = None if args.params is None else load_tuned(args.params, fs, h, args.data)
@@ -268,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
                     val["n_t"], val["capacity_abs"], predict_change(booster, val[cols])
                 )
                 conf = conformalised(target, q, val, q_val)
-            records += per_event(target, f"xgb_{fs.value}", h, q[:, 1], q, conf)
+            records += per_event(target, f"xgb_{fs.value}", h, q[:, 1], q, conf, post)
             print(
                 f"h={h:2d} {fs.value:9s} best_it {booster.best_iteration:4d} "
                 f"({time.perf_counter() - t0:.0f} s)"
