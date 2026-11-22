@@ -22,13 +22,3 @@ export function Home() {
     );
   return <Navigate to={`/events/${newest.event_id}/live`} replace />;
 }
-
-/** Pages that later tasks fill in. */
-export function NotBuiltYet({ title, task }: { title: string; task: string }) {
-  return (
-    <section>
-      <h1 className="text-xl font-semibold">{title}</h1>
-      <p className="mt-2 text-muted">This page arrives in task {task}.</p>
-    </section>
-  );
-}

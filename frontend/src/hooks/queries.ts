@@ -101,6 +101,20 @@ export function useZoneTimeline(eventId: number, zoneId: number | undefined, hor
   });
 }
 
+export function useGraphValidation(venueId: number | undefined) {
+  return useQuery({
+    queryKey: ["graph-validation", venueId],
+    enabled: venueId !== undefined,
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/venues/{venue_id}/graph/validate", {
+          params: { path: { venue_id: venueId as number } },
+        }),
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useSchedule(eventId: number) {
   return useQuery({
     queryKey: ["schedule", eventId],

@@ -2,10 +2,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AlertsPage } from "./features/alerts/AlertsPage";
+import { EventPage } from "./features/event/EventPage";
 import { LivePage } from "./features/live/LivePage";
 
 import { Shell } from "./routes/Shell";
-import { Home, NotBuiltYet } from "./routes/pages";
+import { Home } from "./routes/pages";
 
 // Chart pages load on demand so the Live page does not pay for the charting library.
 const PredictionsPage = lazy(() =>
@@ -45,7 +46,7 @@ export default function App() {
                 </Suspense>
               }
             />
-            <Route path="event" element={<NotBuiltYet title="Event & venue" task="8" />} />
+            <Route path="event" element={<EventPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
