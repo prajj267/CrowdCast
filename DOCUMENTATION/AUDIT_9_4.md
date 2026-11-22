@@ -1,0 +1,55 @@
+# Documentation consistency audit (WORKFLOW 9.4, risk R16)
+
+| Field | Value |
+|---|---|
+| Started | 2026-11-23 |
+| Code state audited | `95ea32e` (main, clean) |
+| Scope | `DOCUMENTATION/01–21`, `INDEX.md`, `ARCHITECTURE/*.mmd`, `README.md`, `RESEARCH/`, `learning/` against `backend/`, `frontend/`, `configs/`, `docker-compose.yml`, `.env.example` |
+
+**Rule:** for *scope*, `WORKFLOW.md` wins. For contracts and methods, the documents win, so a mismatch is fixed in the code **or** logged as a deviation, never silently rewritten in the doc. A finding is closed only when the doc, the code or the Deviation log has been changed.
+
+## 1. How each area was checked
+
+| Area | Method | Result |
+|---|---|---|
+| DB schema (13) | Script: every ORM table/column and every enum compared with doc 13 §2–3; `alembic check` against the live DB | **Consistent**: all 13 tables, all columns, all 10 enums; no pending migration |
+| API (14) | OpenAPI route list of `create_app()` compared with doc 14 §2 and the §6 amendments | 19 built routes all specified; unbuilt routes partly unlisted (F-14a) |
+| Observation JSON (14 §3.8) | `ingestion/validation.py` against §3.8 + §6 | **Consistent** |
+| YAML formats (12 §6) | Script: every Pydantic config field (venue, event, camera) searched in doc 12 §6.1–6.3 | **Consistent** (`from_` is the alias of `from`) |
+| Features (10 §5) | Columns built by `forecasting/features.py` compared with §5.1–5.4 | Consistent except F-10b (and the logged `nbr_flow_to_i` deviation) |
+| Risk engine (08 M7, 11, 06 FR-CNG/ALR) | Constants in `risk/levels.py`, `risk/alerts.py` | **Consistent**: thresholds 0.60/0.80/0.95, λ = 0.25, 2-cycle confirmation, 3 cycles below θ_H − 0.05, escalation |
+| CV method (09) | Constants in `vision/tracking.py`, `aggregation/counting.py`, `vision/frames.py` | Parameters consistent (5 FPS, ByteTrack 0.5/0.1/0.8/30, ±10 px / 10 s debounce, dense flag 40 / 25 px, median ÷ κ); text outdated (F-09) |
+| Operational evaluation (16 §5) | Constants in `tools/training/operational.py`, `stats.py` | **Consistent** (35/2 min cover window, h + 5 min, 2-min episodes, 10,000 bootstrap, α 0.05) |
+| Test cases (17) | Test-case IDs in doc 17 vs test names in `backend/tests`, `frontend/src` | 23 of 52 IDs have a named test (F-17) |
+| Results | Docs, README, RESEARCH, learning scanned for measured numbers | **No unlogged result found.** Doc 16 tables are still empty templates (filled in 7.5) |
+| Team-plan terms | grep for YOLO11/Ultralytics, JWT/RBAC, APScheduler, cv-worker, nginx, `supervision`, GPU, import-linter, Playwright/Locust, Python 3.11 | Hits in 07, 08, 09, 15, 17, 18, 19, INDEX, `ARCHITECTURE/` (F-07, F-08, F-09, F-15, F-17, F-18, F-ARCH). Hits in 03/04 are literature, correct as is |
+
+## 2. Findings
+
+Status: `open` / `fixed` (doc changed) / `logged` (Deviation log) / `code` (code changed) / `decide` (needs the developer).
+
+| ID | Where | Finding | Proposed action | Status |
+|---|---|---|---|---|
+| F-README | `README.md` | Says "Phase 1 (foundations) in progress"; ByteTrack, Optuna, React marked "planned"; "what is built" table stops at Phase 1 | Rewrite status, built-features table and quick start for the current state (no results quoted until 7.5) | fixed (README rewritten: status, built list, quick start, end-to-end demo commands; no results quoted) |
+| F-07 | 07 §1–2, §4.3, §6–7 | Three Docker processes (api/scheduler/cv-worker), APScheduler at hh:mm:10, YOLO11 + `supervision`, JWT/RBAC (PyJWT, argon2), Python 3.11, nginx, import-linter | Solo amendment section: one API process + CLI cycle driver (`tools.run_predictions --follow`, event-time polling), native Python 3.12, Postgres-only Compose, YOLOX + in-house ByteTrack, no auth, no import-linter (see F-CODE-1) | fixed (07 v0.2, §9 solo implementation table) |
+| F-08 | 08 status, M2 defaults, M8, T2 | "interfaces are design contracts, not implemented code"; M2 defaults `yolo11n.pt` conf 0.25 via Ultralytics; M8 auth/`require_role`; T2 `crowdcast-train …` CLI does not exist | Status → implemented; M2 → YOLOX tiled; M8 no auth; T2 → real `tools.training.{train,tune,ablation,stats,operational}` commands | open |
+| F-09 | 09 status, §2–4, §9–11 | Still YOLO11, `imgsz` 640/960 per camera, GPU budget table, own-footage validation plan, AGPL licence text; tiling not described; speed (§6.3) never built (`mean_speed_mps` always null); `PARTIAL` quality rule (< 50 % of expected frames) in code but not in doc | Rewrite to YOLOX + tiling (logged deviations), CPU offline budget pointing to logged bench runs, public-data validation (D6), speed "not implemented", add PARTIAL rule | fixed (09 v0.2, §12 implementation table; notes that only YOLOX-s tiled was ever evaluated) |
+| F-10a | 10 status line | "no forecasting results exist yet": validation runs are now logged | "Results: see EXPERIMENT_LOG; final tables in 16" | fixed (10 v0.3) |
+| F-10b | 10 §3.4 | α lowered to 0.3 for `LOW_CONFIDENCE` minutes is **not implemented** (α = 0.5 always; α = 1 when flows missing is implemented). Synthetic data carries no quality flags, so no forecasting experiment is affected; only REAL CV input online would be | Deviation log (do not change features while experiments run) | logged + note in 10 §3.4 |
+| F-10c | 10 §12, §13 | Cycle "every minute at hh:mm:10" (actual: event-time back-fill / `--follow` polling); registry path `models/<name>_<version>/` (actual `models/xgb/<name>/<timestamp>/`); one active model globally (doc: "per venue or globally") | Implementation note in §12/§13 | fixed (10 v0.3) |
+| F-14a | 14 §2 vs §6 | Not built and not listed in §6: `/api/cameras*` (4 routes), `POST /api/crowd/observations/import`, `PATCH/DELETE /api/zones/{id}`, `PATCH/DELETE /api/schedule-items/{id}`, `PUT /api/venues/{id}/floor-plan` | §6 rows: cameras → camera YAML (12 §6.3) read by `tools.vision.run_camera`; edits → YAML re-load; CSV import → see F-OBS | fixed (14 v0.3) |
+| F-13 | 13 §3.8–3.10 | `camera_sources`, `camera_zone_regions`, `counting_lines` are created but never written (no loader, no endpoint); camera geometry lives only in the camera YAML. So the graph warning `NO_COUNTING_LINE` (11 rule 4) can never fire, and doc 09 §8's "DB constraint: one line per connection" is not enforced for YAML cameras | Note in 13 §8; decide whether `camera_config.py` should check "one line per connection" itself | open |
+| F-OBS | 06 FR-OBS-05, 12 §4.3 | Manual-annotation CSV import not built; no MANUAL data exists (D6) | Deviation log | logged + 14 §6 row |
+| F-15 | 15 §3 | Login page, Admin pages (Users, Cameras, Models), toasts + CRITICAL sound, "Why?" panel, server-side MAE, alert-timeline-vs-onset view: none built; no amendment section | §7 "Solo implementation" listing the 5 built pages and what is not built (from the 8.x session log) | fixed (15 v0.2, §7 solo implementation table) |
+| F-17 | 17 §1, §2 | Playwright E2E / Locust replaced by `tools.smoke_e2e` / `tools.bench_cycle` (solo scope) but not stated; 29 of 52 test-case IDs have no named test (API-01–09, CV-01–06/10–12, ML-01/03–09, OBS-01–03, PERF-01–04); some may be covered under other names | Traceability table: TC-ID → test or tool, or "not implemented" | open |
+| F-18 | 18 (whole) | Containers, caddy/TLS, GPU cv-worker, JWT/Fernet/CV_API_KEY secrets, `crowdcast.api.main`, `crowdcast.forecasting.scheduler`, admin-creation CLI: none exist. §5 is the procedure 9.6 must follow | Rewrite to the solo procedure (Docker Postgres + `uv sync` + Alembic + `load_config` + model files + API + `run_predictions --follow` + `npm run dev`) | fixed (18 v0.2, rewritten; §5 fresh-clone procedure uses only existing commands) |
+| F-19 | 19 | Auth/RBAC controls and "team member" wording | Mark auth controls out of scope (D7); retention already logged | open |
+| F-ARCH | `ARCHITECTURE/*.mmd` | `system_architecture`, `deployment_architecture`, `data_flow` show cv-worker, APScheduler, YOLO11, JWT | Redraw for the solo runtime | fixed (system, deployment and data-flow diagrams redrawn; not rendered locally) |
+| F-0.3 | 02, 06, 21, INDEX, `PROJECT_MANAGEMENT/` | Status "Proposed / nothing implemented", LSTM and auth in scope, team roles: already tasks 0.3.1–0.3.4 | Do 0.3.1–0.3.4 as part of this audit | open |
+| F-RES | `RESEARCH/experimental_design.md` §2 | REAL-staged / REAL-event datasets still listed (dropped, logged 2026-11-20) | Mark as dropped with link to the Deviation log | open |
+| F-CI | WORKFLOW D3 | Decision log says "CI with GitHub Actions"; no `.github/workflows` exists, never committed | Add a minimal CI (ruff, mypy, pytest -m "not db", frontend lint/test/build) **or** correct D3 | code: `.github/workflows/ci.yml` (backend with a Postgres 16 service so DB tests run; API-client drift check; frontend format/lint/build/Vitest; full-history privacy scan) |
+| F-CODE-1 | `api/routes_models.py`, `vision/pipeline.py` | Cross-module imports of internals (CLAUDE.md §4): `api → forecasting.features.FeatureSet`, `forecasting.xgb.artifacts_complete`; `vision → aggregation.counting`; `aggregation` has no `interfaces.py`. (`tools/` import internals widely; treated as allowed for CLI tools) | Export via `forecasting/interfaces.py`, add `aggregation/interfaces.py`; pure re-exports, no behaviour change | code: re-exports + `tests/test_module_boundaries.py` (AST check, stands in for import-linter) |
+| F-CODE-2 | `common/config.py`, `.env.example` | `PREDICTION_OFFSET_S` setting is never read (cycle is driven by event time) | Remove the setting, or document it as unused | code: removed, together with `MODEL_DIR` (also never read; models are always under `<repo>/models`) |
+| F-CODE-3 | `forecasting/cycle.py` docstring | "there is no trained model yet, so every forecast is the B0 persistence fallback": stale | Update docstring | code (comment only) |
+| F-API-CLIENT | `frontend/src/api/openapi.json`, `schema.ts` | The committed API client was stale: it lacked `/api/models` and `/api/models/{id}/activate` (added in 5.3.3 without `npm run gen:api`). The frontend does not call them, so nothing was broken | Regenerated; CI now fails on any drift | code |
+| F-TEST-FLAKY | `tests/test_api_venues_events.py::test_status_planned_live_ended` | Failed once in a full run while passing alone: it compared two `audit_log` rows as an ordered list but selected them without `ORDER BY` | `order_by(audit_id)` | code |

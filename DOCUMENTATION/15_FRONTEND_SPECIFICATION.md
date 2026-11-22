@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
+| Version | 0.2 (**§7 lists the solo implementation and wins over §1–§6**) |
 | Module | M9 |
 | Stack | React 18, TypeScript (strict), Vite, React Router, TanStack Query, Recharts, Tailwind CSS, Radix-based components (shadcn/ui pattern) |
 
@@ -160,3 +160,22 @@ frontend/src/
 ```
 
 Access token kept in memory; refresh via HttpOnly cookie; route guards by role.
+
+## 7. Solo implementation (v0.2, 9.4 audit)
+
+Decision D1: React stack, reduced to five pages, no polygon editor; D7: no authentication. Built in WORKFLOW 4.5 and 8.1–8.6. Where this section and §1–§6 differ, this section wins.
+
+| Topic | Design (§1–§6) | Implemented |
+|---|---|---|
+| Pages | Login, Events, Venue configuration, Live, Predictions, History, Alerts, Admin (Users, Cameras, Models) | Five pages under `/events/:eventId/`: **Live** (`live`), **Predictions** (`predictions`), **Alerts** (`alerts`), **History** (`history`), **Event & venue** (`event`, read-only). `/` opens the newest event; the top bar has an event selector |
+| Login, roles (Page 1, §6) | Login page, in-memory token, refresh cookie, route guards | None (D7). No user menu |
+| Venue configuration (Page 3), Admin pages | Polygon editor; users, cameras, model activation in the UI | Not built. Venues, events and cameras come from YAML ([12 §6](12_DATASET_AND_DATA_COLLECTION.md)); the Event & venue page shows the loaded configuration and how to change it. A model is activated through the API (`POST /api/models/{id}/activate`); the page shows which model is active |
+| Predictions "Why?" panel (Page 5) | Optional, if attributions are stored | Not built (attributions are not stored) |
+| History (Page 6) | Server-side MAE; alert timeline vs episode onset | MAE is computed in the browser from the timeline endpoint (same arithmetic, no API change). The alert-vs-onset view is not built; lead time is measured offline by the operational evaluation ([16 §5](16_MODEL_EVALUATION.md)) |
+| Alerts (Page 7) | In-app toasts; optional sound on CRITICAL (FR-ALR-06) | Not built. Alerts appear on the Live page list and the Alerts page (filters, detail, acknowledge/resolve with an optional note) |
+| Alert notes / audit trail | — | Written by the API, but no endpoint reads them back, so the UI does not show them |
+| States (§4) | As specified | Built: loading, empty, error, connection-lost banner, stale forecasts, warm-up (first 15 min), all-fallback notice, SYNTHETIC banner, data origin on every page |
+| Polling (AD-03) | 5–10 s | 5 s for current state and alerts, 10 s for predictions, 30 s for the event details and the per-zone forecast timeline (`src/hooks/queries.ts`) |
+| Components (§2.3) | Radix-based components (shadcn/ui pattern) | Own Tailwind components (`src/components/`); no Radix or shadcn/ui dependency |
+| Structure (§6) | `features/` includes events, venues, admin; fetch wrapper with auth | `features/{live,predictions,alerts,history,event}`; `api/` holds the generated OpenAPI types (`npm run gen:api`; CI fails if they drift) and an `openapi-fetch` client without auth |
+| Tests | [17 §2.7](17_TESTING_STRATEGY.md) | Vitest + Testing Library: TC-FE-01 to TC-FE-05 plus page and state tests (`npm run test`) |

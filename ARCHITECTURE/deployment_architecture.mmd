@@ -1,33 +1,29 @@
-%% CROWDCAST — Deployment (single host, Docker Compose)
-%% Details: DOCUMENTATION/18_DEPLOYMENT_PLAN.md
+%% CROWDCAST — Deployment as implemented (one Windows laptop, CPU only)
+%% Details: DOCUMENTATION/18_DEPLOYMENT_PLAN.md (v0.2)
 flowchart TB
-  Browser[Operator / organiser browser]
+  Browser[Browser on the same laptop]
 
-  subgraph Host[Demo machine: Docker Compose, encrypted disk]
-    subgraph Net[Docker internal network]
-      RP[caddy:2<br/>reverse proxy, TLS]
-      FE[frontend<br/>nginx serving React build]
-      API[api<br/>uvicorn FastAPI x2 workers<br/>Alembic migrate on start]
-      SCH[scheduler<br/>APScheduler, 1 replica]
-      CV[cv-worker<br/>profile: gpu<br/>YOLO11 + ByteTrack]
-      SIMC[crowdsim-replay<br/>profile: sim]
-      DB[(postgres:16)]
+  subgraph Host[Windows 11 laptop - everything on 127.0.0.1]
+    subgraph Docker[Docker Desktop]
+      DB[(postgres:16-alpine<br/>crowdcast-db)]
+      PG[[volume crowdcast-pgdata]]
     end
-    VID[[videos volume<br/>read-only, cv-worker only]]
-    MOD[[models volume]]
-    PG[[pgdata volume]]
-    GPU{{NVIDIA GPU<br/>optional}}
+    subgraph Native[Native processes - uv / Python 3.12, Node 24]
+      FE[Vite dev server :5173<br/>React dashboard, proxies /api]
+      API[uvicorn :8000<br/>crowdcast.api.app]
+      CYC[tools.run_predictions --follow<br/>M6 + M7]
+      SRC[tools.crowdsim.replay<br/>or tools.vision.run_camera]
+    end
+    MOD[[models/ - git-ignored<br/>YOLOX ONNX, XGBoost boosters]]
+    VID[[videos/, data/ - git-ignored<br/>public clips and datasets]]
   end
 
-  Browser -- HTTPS 443 --> RP
-  RP -- "/" --> FE
-  RP -- "/api" --> API
+  Browser --> FE
+  FE -- "/api" --> API
   API --> DB
-  SCH --> DB
-  CV -- "HTTP + X-API-Key" --> API
-  SIMC -- "HTTP + X-API-Key" --> API
-  VID --> CV
-  MOD --> SCH
-  MOD --> API
+  CYC --> DB
+  SRC -- "POST /api/crowd/observations" --> API
   PG --- DB
-  GPU -.-> CV
+  MOD --> CYC
+  MOD --> SRC
+  VID --> SRC

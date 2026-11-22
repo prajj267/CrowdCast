@@ -1,17 +1,17 @@
-%% CROWDCAST — Per-minute data flow (perception -> storage -> prediction -> presentation)
-%% Timing budget: DOCUMENTATION/07_SYSTEM_ARCHITECTURE.md §5
+%% CROWDCAST — Per-minute data flow as implemented (perception -> storage -> prediction -> presentation)
+%% Solo runtime: DOCUMENTATION/07 §9. All times are EVENT time (video start or simulation), never wall-clock.
 sequenceDiagram
   autonumber
-  participant Cam as Camera / video file
-  participant CV as cv-worker (M1-M3)
+  participant Cam as Recorded public clip
+  participant CV as run_camera CLI (M1-M3, CPU)
   participant API as api (M8)
   participant DB as PostgreSQL (M4)
-  participant SCH as scheduler (M6 + M7)
+  participant SCH as run_predictions CLI (M6 + M7)
   participant UI as Dashboard (M9)
 
   loop every sampled frame (5 FPS)
     Cam->>CV: frame
-    CV->>CV: detect persons, update ByteTrack
+    CV->>CV: YOLOX on tiles, update ByteTrack
     CV->>CV: foot points in zone regions -> per-frame counts
     CV->>CV: track segments x counting lines -> crossings
   end
@@ -22,15 +22,15 @@ sequenceDiagram
   API->>DB: upsert crowd_observations
   API-->>CV: 200 {inserted, updated, rejected}
 
-  Note over SCH: t + 10 s
+  Note over SCH: bucket t complete in the DB (--follow polling)
   SCH->>DB: read last 60 min observations, schedule, zones, connections
   SCH->>SCH: FeatureBuilder (F_HIST, F_FLOW, F_SCHED, F_NBR)
-  SCH->>SCH: XGBoost quantiles for h = 5, 15, 30 (fallback: persistence)
+  SCH->>SCH: XGBoost quantiles for h = 5, 15, 30 + conformal offsets (fallback: persistence)
   SCH->>DB: insert predictions
   SCH->>SCH: M7 levels + alert state machine
   SCH->>DB: insert/update congestion_alerts
 
-  loop every 5-10 s
+  loop every 5-30 s (TanStack Query polling)
     UI->>API: GET /api/crowd/current/{event_id}
     UI->>API: GET /api/predictions/{event_id}
     UI->>API: GET /api/alerts/{event_id}

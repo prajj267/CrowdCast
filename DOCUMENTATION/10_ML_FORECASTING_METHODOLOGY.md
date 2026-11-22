@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2 |
-| Status | Proposed; **no forecasting results exist yet** |
+| Version | 0.3 |
+| Status | Implemented (`backend/crowdcast/forecasting/`, `backend/tools/training/`). Results are only in [EXPERIMENT_LOG.md](../EXPERIMENT_LOG.md) and, once final, in [16](16_MODEL_EVALUATION.md); none are quoted here |
 | Module | M6, T2 |
 
 ---
@@ -104,6 +104,8 @@ $$
 - $\alpha_i \in [0,1]$ trades trust in direct counting vs flow integration. Default $\alpha=0.5$; lowered (e.g. 0.3) when the window is `LOW_CONFIDENCE` (direct counts unreliable), raised to 1 when flows are missing.
 - The flow term re-anchors to the direct count every step, so flow-integration drift cannot grow unbounded.
 - $\tilde N_i$ is offered as an **additional feature**, not a replacement of $N^{cv}_i$, so the learned model can choose. The ablation reports whether it helps.
+
+*Implementation (`forecasting/features.py`, feature `fused_u_t`):* α = 0.5, and α = 1 (the direct count) when a minute's inflow or outflow is missing. The `LOW_CONFIDENCE` reduction to 0.3 is **not implemented** (WORKFLOW Deviation log, 2026-11-23). Synthetic data carries no quality flags, so no experiment is affected. The recursion restarts over a fixed 60-minute look-back for every row, so training and the online cycle give identical values (Deviation log, 2026-11-21).
 
 ## 4. Candidate models
 
@@ -290,9 +292,13 @@ every minute at hh:mm:10 for each LIVE event:
 
 Cold start: during the first 15 minutes of an event, predictions are persistence-based and labelled as such in the UI.
 
+*Implementation (`forecasting/cycle.py`, `tools/run_predictions.py`):* there is no separate scheduler process (solo scope). The cycle driver is a CLI. It either back-fills every minute of an event, or with `--follow` polls the database and issues one cycle for each newly completed minute bucket. Issue times are therefore **event time** taken from the data, not the wall clock at hh:mm:10. This keeps replays at any speed deterministic. The active model is loaded before the first cycle and between polls (WORKFLOW 9.2 follow-up). Gaps of up to 3 minutes are forward-filled; a zone with older data is skipped and logged.
+
 ## 13. Model registry and versioning
 
 `model_versions` table + `models/<name>_<version>/` containing boosters, `manifest.json` (feature set, horizons, quantiles, training events hash, metrics, git commit, seed), and conformal offsets. Exactly one version is active per venue (or globally) at a time (FR-FC-05).
+
+*Implementation:* artefacts live in `models/xgb/<name>/<UTC timestamp>/` (git-ignored); `artifact_path` in `model_versions` points there. Activation is **global**: `POST /api/models/{id}/activate` deactivates the previous model. A built-in `B0_persistence` row exists for fallback predictions and is never active.
 
 ## 14. Summary of recommendations
 
@@ -309,4 +315,5 @@ Cold start: during the first 15 minutes of an event, predictions are persistence
 
 | Version | Date | Change |
 |---|---|---|
+| 0.3 | 2026-11-23 | 9.4 audit: status line; implementation notes in §3.4 (α, LOW_CONFIDENCE rule not built), §12 (event-time CLI cycle driver instead of a scheduler at hh:mm:10), §13 (registry path, global activation). No method change |
 | 0.2 | 2026-11-20 | §3.1: time index of the conservation identity corrected to match §1.1 ($N_i(t)$ = occupancy at the end of bucket $t$): $N_i(t) = N_i(t-1) + F^{in}_i(t) - F^{out}_i(t)$; the summed form runs over $s = t+1 \dots t+h$. B3 (§3.2) is unchanged. Reason: with §1.1's definition the v0.1 form added flows observed after the occupancy; every value in row $t$ must be known at issue time $t$ (§7) |

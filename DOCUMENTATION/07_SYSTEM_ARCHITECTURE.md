@@ -2,11 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
-| Status | Proposed |
+| Version | 0.2 |
+| Status | Implemented in the solo scope. **§9 lists where the implementation differs from §1–§8 and wins over them** |
 | Diagrams | [ARCHITECTURE/](../ARCHITECTURE/) (`.mmd` sources) |
 
 ---
+
+> §1–§8 are the original design for a 4-person team with a GPU. The modules M1–M9, the single ingestion contract (AD-02), polling (AD-03) and the information flow in §4 are implemented as designed. The runtime (processes, scheduler, detector, authentication) changed: see §9.
 
 ## 1. Architectural style
 
@@ -173,3 +175,23 @@ Each module exposes an `interfaces.py`; `import-linter` contracts forbid importi
 | Database becomes a bottleneck | Not expected at ≤ 15 zones; indices in [13](13_DATABASE_DESIGN.md) |
 | Clock mismatch between video and event time | Event time derived from configured start offset, never from wall-clock for recorded files |
 | Scheduler and API diverge in configuration | Both read the same `.env` and DB; one Docker image |
+
+## 9. Solo implementation (v0.2, 9.4 audit)
+
+Scope decisions are in [WORKFLOW.md](../WORKFLOW.md) (D1–D8, Deviation log). Where this section and §1–§8 differ, this section wins.
+
+| Topic | Design (§1–§8) | Implemented |
+|---|---|---|
+| AD-01 processes | Three processes (`api`, `scheduler`, `cv-worker`) from one Docker image, plus PostgreSQL and a static frontend | Still a modular monolith, but only PostgreSQL runs in Docker. Python runs natively: one API process (uvicorn), a CLI cycle driver (`tools.run_predictions`), and CLI observation sources (`tools.crowdsim.replay`, `tools.vision.run_camera`). See [18 §2](18_DEPLOYMENT_PLAN.md) |
+| §4.3, AD-10 scheduler | APScheduler process, cycle at second 10 of each minute | No scheduler. The cycle driver back-fills an event, or with `--follow` polls and issues one cycle per newly completed minute bucket, in **event time** taken from the data ([10 §12](10_ML_FORECASTING_METHODOLOGY.md)). Replays at any speed give identical predictions |
+| M1–M3 placement | Inside the `cv-worker` process, near real time on a GPU | Offline on recorded public clips on the CPU (`tools.vision.run_camera`), posting minute rows through the API (AD-02 unchanged). The demo replays stored observations |
+| M2, AD-06 detector and tracker | Ultralytics YOLO11 + ByteTrack via `supervision` | YOLOX (Apache-2.0) through ONNX Runtime with tiled detection; ByteTrack implemented in `vision/tracking.py` (D2; Deviation log 2026-11-20/21). Method: [09](09_COMPUTER_VISION_METHODOLOGY.md) |
+| M1 code location | `ingestion/` (§7) | Frame reading is `vision/frames.py`. `ingestion/` holds the observation contract and its validation, used by the API |
+| M8 auth | JWT, RBAC (PyJWT, argon2-cffi) | None (D7): single local user, no login. Listed as a limitation |
+| M9 serving | Static build behind nginx | Vite development server proxying `/api` to the API |
+| AD-04 language | Python 3.11 | Python 3.12 (uv-managed, D8) |
+| AD-11 deployment | Docker Compose for all services | Docker Compose for PostgreSQL only |
+| §5 timing budget | Freshness ≤ 20 s with a 10-s scheduler offset | The prediction-cycle step (≤ 5 s, NFR-PERF-01) is measured by `tools.bench_cycle` (logged in EXPERIMENT_LOG.md). The other steps have no separate scheduler offset in the event-time design |
+| §7 module boundaries | Enforced by `import-linter` contracts | Enforced by `backend/tests/test_module_boundaries.py`: a module imports another only through its `interfaces.py` (`common/` is shared; CLI tools in `tools/` are exempt). Every module except `api` has an `interfaces.py` |
+| §7 layout | As listed | As listed, plus `.github/workflows/ci.yml` (lint, types, tests with a PostgreSQL service, API-client drift check, frontend checks, privacy scan) |
+| §8 risk "GPU unavailable" | Mitigation planned | Occurred (R6): CPU-only offline CV is the main path |

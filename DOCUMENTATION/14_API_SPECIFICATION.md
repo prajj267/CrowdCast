@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.2 (implementation amendments in §6) |
+| Version | 0.3 (implementation amendments in §6; 0.3 adds the unbuilt endpoints, 9.4 audit) |
 | Style | REST over HTTPS, JSON, FastAPI (OpenAPI 3.1 generated at `/api/docs`) |
 | Base path | `/api` |
 | Auth | **None** in the solo scope (decision D7, WORKFLOW.md): no tokens, roles or users; role columns in §2 do not apply |
@@ -357,3 +357,6 @@ Decisions taken while implementing WORKFLOW 2.3.2–2.3.4. Where this section an
 | `GET /api/alerts/{id}` (§3.13) | `acknowledged_by` | Not returned (no users, D7); `resolved_at` and `auto_resolved` added; newest first, keyset `cursor` |
 | `POST /api/alerts/{id}/acknowledge` / `resolve` (§3.14) | 403 for unassigned operators | No 403 (D7). acknowledge: OPEN → ACKNOWLEDGED; resolve: OPEN/ACKNOWLEDGED → RESOLVED (`auto_resolved = false`); otherwise 409. Stamped with **wall-clock** UTC (a real operator action, unlike event-time alert opening). The optional `note` (≤ 500 chars) is stored in the `audit_log` entry (`actor = USER`) |
 | `GET /api/models`, `POST /api/models/{id}/activate` (§3.15) | — | Built (WORKFLOW 5.3.3). List: `{models: [{model_version_id, name, version, model_family, feature_set, is_active, created_at, metrics}]}`. Activate: 404 unknown; 422 if the family cannot run online (only `XGBOOST`; the built-in `PERSISTENCE` row is the fallback, not activatable), the feature set is unknown, or artefact files are missing (`details` lists them); the previously active model is deactivated in the same transaction; audited (`MODEL_ACTIVATE`). No deactivate endpoint yet |
+| Camera endpoints (`POST /api/cameras`, `GET /api/cameras/{id}/config`, `PUT …/regions`, `PUT …/lines`) | CV worker fetches its geometry from the API | Not built (9.4 audit, F-14a). Camera geometry is the camera YAML ([12 §6.3](12_DATASET_AND_DATA_COLLECTION.md)), read directly by `tools.vision.run_camera`. The tables `camera_sources`, `camera_zone_regions` and `counting_lines` ([13](13_DATABASE_DESIGN.md)) exist but stay empty, so `camera_count` in event responses is 0 |
+| Editing configuration (`PATCH/DELETE /api/zones/{id}`, `PATCH/DELETE /api/schedule-items/{id}`, `PUT /api/venues/{id}/floor-plan`) | Edit endpoints and floor-plan upload | Not built (solo scope, no editor): change the YAML and load it again with `tools.load_config` (it refuses duplicates, so a changed venue or event is loaded under a new name). The live map draws zone polygons from the venue YAML coordinates; there is no floor-plan image |
+| `POST /api/crowd/observations/import` (FR-OBS-05) | CSV import of manual annotations | Not built: no MANUAL data exists under D6 (WORKFLOW Deviation log, 2026-11-23) |

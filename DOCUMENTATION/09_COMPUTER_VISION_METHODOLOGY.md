@@ -2,11 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
-| Status | Proposed; no CV accuracy has been measured yet |
+| Version | 0.2 |
+| Status | Implemented (`backend/crowdcast/vision/`, `backend/crowdcast/aggregation/`, `backend/tools/vision/`). Accuracy measured on public data: runs in [EXPERIMENT_LOG.md](../EXPERIMENT_LOG.md), tables in [16 §2](16_MODEL_EVALUATION.md). **§12 lists where the implementation differs from §1–§11 and wins over them** |
 | Module | M1, M2, M3 |
 
 ---
+
+> Detector, input size, processing budget, validation data and licence changed with decisions D2 and D6 (§12). The counting method (§5–§8: ByteTrack parameters, foot points, median ÷ κ, line crossings with three debounce rules, dense flag) is implemented as written.
 
 ## 1. Goal and output contract
 
@@ -140,3 +142,19 @@ Ground-plane multi-camera fusion (projecting all detections to a common floor pl
 ## 11. Licences
 
 Ultralytics YOLO11 is AGPL-3.0 (or enterprise) [13]. For an academic open-source repository this is acceptable if CROWDCAST source is published under an AGPL-compatible licence. If the team or institution cannot accept AGPL, use YOLOX (Apache-2.0) with ByteTrack from `supervision` (MIT); the M2 `PersonDetector` interface isolates this choice.
+
+## 12. Implementation (v0.2, 9.4 audit)
+
+| Topic | Design (§1–§11) | Implemented |
+|---|---|---|
+| Detector (§4, CV-01) | YOLO11n/s (Ultralytics, AGPL-3.0) | YOLOX nano/tiny/s (Apache-2.0, release 0.1.1rc0) as ONNX files run with ONNX Runtime on the CPU (`vision/yolox_onnx.py`), person class only. Decision D2 |
+| Input size (§3) | `imgsz` 640 or 960, chosen per camera | Fixed by the official ONNX exports: nano/tiny 416 px, s 640 px (Deviation log 2026-11-20). These exports need raw BGR input, without ImageNet normalisation |
+| Small, distant people | Not addressed | **Tiled detection** (`vision/tiling.py`): overlapping tiles at the model input size (overlap 0.2), boxes cut at inner tile edges dropped, one extra full-frame pass, merge NMS at IoU 0.45 (Deviation log 2026-11-20). Untiled models found few people in a 1080p wide shot (bench-20261120T134304Z) |
+| Model used | Chosen per camera after calibration | **YOLOX-s with tiles at 5 FPS**, the provisional default from WORKFLOW 1.4.3. Every logged CV evaluation (7.1) used this configuration only; no accuracy comparison between YOLOX sizes was run |
+| Tracker (§5) | ByteTrack from Ultralytics or `supervision` | ByteTrack implemented in `vision/tracking.py` (Kalman filter, two-stage IoU association, SciPy assignment; Deviation log 2026-11-21) with the §5 parameters. "match IoU 0.8" is read as ByteTrack's `match_thresh` 0.8 on the cost 1 − IoU |
+| Speed (§6.3) | Optional, with a homography | **Not implemented.** `mean_speed_mps` is always null for REAL data; the forecasting features `speed_t`, `speed_roll_5` are then NaN, which XGBoost handles natively |
+| Quality flags (§7) | `LOW_CONFIDENCE` for dense minutes | As designed (`aggregation/counting.py`; thresholds 40 detections / 25 px remain placeholders). Added: **`PARTIAL`** when fewer than half of a minute's expected frames were processed |
+| Camera geometry (§8) | Stored in `camera_zone_regions` and `counting_lines`, unique line per connection enforced by the DB | Read from the camera YAML ([12 §6.3](12_DATASET_AND_DATA_COLLECTION.md)); the camera tables stay empty. "One line per connection" is **not** checked for YAML cameras (9.4 audit, F-13) |
+| Processing budget (§9) | Real time on a GPU | CPU only, offline on recorded clips (`tools.vision.run_camera`); measured speeds are in the `bench-*` runs of EXPERIMENT_LOG.md. The demo replays stored observations |
+| Validation (§10) | ≥ 300 annotated frames and ≥ 60 min of crossings from own footage | Public data only (D6): count error by density band on Mall, ShanghaiTech Part B (test) and MOT20-01/03 (`tools.vision.eval_counts`); flow error on virtual counting lines in MOT20, with ground-truth crossings derived from the annotated tracks (`tools.vision.eval_flows`). Deviation log 2026-11-20 |
+| Licence (§11) | AGPL discussion | Not applicable: no Ultralytics code or weights are used |
