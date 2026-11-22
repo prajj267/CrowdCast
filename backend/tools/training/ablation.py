@@ -11,7 +11,8 @@ RESEARCH/experimental_design.md §4-7; CLAUDE.md §5).
 
 Output: runs/ablation/<run>/per_event.csv (one row per event x horizon x model - the unit of
 the paired Wilcoxon tests, 7.3.5; with MAE in the peak and post-release strata,
-experimental_design §8) + manifest.json. Statistics: tools/training/stats.py.
+experimental_design §8), predictions.parquet (per-row P10/P50/P90 for the operational
+evaluation, tools/training/operational.py) + manifest.json. Statistics: tools/training/stats.py.
 
 Usage (from backend/, clean tree):
   uv run python -u -m tools.training.ablation --split validation
@@ -165,6 +166,36 @@ def post_release_mask(
     return out
 
 
+# ---------------------------------------------------------------------- row predictions (7.4)
+def prediction_frame(
+    rows: pd.DataFrame,
+    horizon: int,
+    model: str,
+    p50: np.ndarray,
+    interval: np.ndarray | None = None,
+) -> pd.DataFrame:
+    """Per-row forecasts for the operational evaluation (tools/training/operational.py):
+    issue row k, observed N(t), true N(t + h), P50 and the (conformal) P10/P90 in persons."""
+    lo = np.full(len(rows), np.nan) if interval is None else interval[:, 0]
+    hi = np.full(len(rows), np.nan) if interval is None else interval[:, 2]
+    return pd.DataFrame(
+        {
+            "event_id": rows["event_id"].to_numpy(),
+            "venue": rows["venue"].to_numpy(),
+            "zone": rows["zone"].to_numpy(np.int16),
+            "k": rows["k"].to_numpy(np.int32),
+            "horizon": np.int16(horizon),
+            "model": model,
+            "n_t": rows["n_t"].to_numpy(np.float32),
+            "actual": actual_of(rows).astype(np.float32),
+            "capacity": rows["capacity_abs"].to_numpy(np.float32),
+            "p10": lo.astype(np.float32),
+            "p50": np.asarray(p50, dtype=np.float32),
+            "p90": hi.astype(np.float32),
+        }
+    )
+
+
 # ---------------------------------------------------------------------- metrics
 def _stratum_mae(err: np.ndarray, mask: np.ndarray) -> tuple[float, int]:
     n = int(mask.sum())
@@ -292,6 +323,7 @@ def main(argv: list[str] | None = None) -> int:
     out = RUNS / run
     out.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, Any]] = []
+    preds: list[pd.DataFrame] = []
     adjacency = upstream_adjacency(sorted({e.split("_")[0] for e in target_ids}))
     t0 = time.perf_counter()
     for h in args.horizons:
@@ -305,6 +337,7 @@ def main(argv: list[str] | None = None) -> int:
         post = post_release_mask(target, h, adjacency)
         for name, pred in baseline_predictions(target, h).items():
             records += per_event(target, name, h, pred, post_release=post)
+            preds.append(prediction_frame(target, h, name, pred))
         for fs in args.feature_sets:
             cols = columns_of(fs)
             params = None if args.params is None else load_tuned(args.params, fs, h, args.data)
@@ -322,12 +355,14 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 conf = conformalised(target, q, val, q_val)
             records += per_event(target, f"xgb_{fs.value}", h, q[:, 1], q, conf, post)
+            preds.append(prediction_frame(target, h, f"xgb_{fs.value}", q[:, 1], conf))
             print(
                 f"h={h:2d} {fs.value:9s} best_it {booster.best_iteration:4d} "
                 f"({time.perf_counter() - t0:.0f} s)"
             )
     table = pd.DataFrame(records)
     table.to_csv(out / "per_event.csv", index=False)
+    pd.concat(preds, ignore_index=True).to_parquet(out / "predictions.parquet", index=False)
     summary = table.groupby(["horizon", "model"])["mae"].mean().unstack("model").round(2)
     print(f"mean MAE over {args.split} events (persons):\n{summary}")
     xgb_rows = table[table["model"].str.startswith("xgb_")]

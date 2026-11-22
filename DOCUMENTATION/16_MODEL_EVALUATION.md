@@ -99,6 +99,14 @@ Accuracy is not a headline metric because NORMAL dominates.
 
 Computed by **replaying** test events through the real M6 + M7 code (including hysteresis), not an idealised approximation.
 
+*Implementation (WORKFLOW 7.4; `backend/tools/training/operational.py`):*
+- **Replay:** each model's per-row P50 forecasts from the ablation run (same FeatureBuilder and model) are replayed minute by minute through the M7 state machine `risk.alerts.decide`. CURRENT uses the observed $N(t)$, which is noisy for SYN-noisy. The database wrapper is bypassed (WORKFLOW Deviation log).
+- **Episodes:** detected on the true simulator occupancy.
+- **False alarms:** an alert counts as followed by an episode if an episode in that zone is ongoing when it opens or starts within $h + 5$ min, with $h = 0$ for CURRENT.
+- **Source mix:** comes from the earliest covering alert. A CURRENT alert wins a tie in the same minute.
+- **PR curve:** uses absolute thresholds $\tau \in [0.50, 1.20]$ in steps of 0.05 on $\hat u^{50}$ and on the conformal $\hat u^{90}$.
+- **F1 uncertainty:** 95 % percentile bootstrap over events (10,000 resamples).
+
 ## 6. Baseline comparison table (template)
 
 | Data | Horizon | B0 | B1 | B2 | B3 | RF | XGB (A4) | LSTM (A4) | GNN (A5) |
