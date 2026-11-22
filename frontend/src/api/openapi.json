@@ -1,6 +1,36 @@
 {
   "components": {
     "schemas": {
+      "Activation": {
+        "properties": {
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "model_version_id": {
+            "title": "Model Version Id",
+            "type": "integer"
+          },
+          "previous_active": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Active"
+          }
+        },
+        "required": [
+          "model_version_id",
+          "is_active",
+          "previous_active"
+        ],
+        "title": "Activation",
+        "type": "object"
+      },
       "ActiveModel": {
         "properties": {
           "model_version_id": {
@@ -866,6 +896,86 @@
           "zones"
         ],
         "title": "LatestPredictions",
+        "type": "object"
+      },
+      "ModelList": {
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelOut"
+            },
+            "title": "Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "title": "ModelList",
+        "type": "object"
+      },
+      "ModelOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "feature_set": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Set"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics"
+          },
+          "model_family": {
+            "title": "Model Family",
+            "type": "string"
+          },
+          "model_version_id": {
+            "title": "Model Version Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_version_id",
+          "name",
+          "version",
+          "model_family",
+          "feature_set",
+          "is_active",
+          "created_at",
+          "metrics"
+        ],
+        "title": "ModelOut",
         "type": "object"
       },
       "ModelRef": {
@@ -2410,6 +2520,70 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/models": {
+      "get": {
+        "operationId": "list_models_api_models_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Models",
+        "tags": [
+          "models"
+        ]
+      }
+    },
+    "/api/models/{model_version_id}/activate": {
+      "post": {
+        "description": "Make one model the active forecaster; the previous one is deactivated (doc 14 \u00a73.15).",
+        "operationId": "activate_api_models__model_version_id__activate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "model_version_id",
+            "required": true,
+            "schema": {
+              "title": "Model Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activate",
+        "tags": [
+          "models"
         ]
       }
     },

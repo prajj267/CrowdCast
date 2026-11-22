@@ -1,0 +1,94 @@
+# Continuous integration (decision D3; WORKFLOW 9.4 audit finding F-CI).
+# Mirrors scripts/check.ps1, plus three checks that only make sense on a clean runner:
+# the DB tests run against a real PostgreSQL 16 service (locally they skip when Docker is off),
+# the committed API client must match the FastAPI schema, and the privacy scan covers the
+# whole git history. Tests marked `model` skip here: weights are never committed (CLAUDE.md §7).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: crowdcast
+          POSTGRES_PASSWORD: crowdcast
+          POSTGRES_DB: crowdcast
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U crowdcast -d crowdcast"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://crowdcast:crowdcast@127.0.0.1:5432/crowdcast
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.9"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install dependencies (locked)
+        run: uv sync --locked
+      - name: Format
+        run: uv run ruff format --check .
+      - name: Lint
+        run: uv run ruff check .
+      - name: Types
+        run: uv run mypy
+      - name: Migrate the test database
+        run: uv run alembic upgrade head
+      - name: Tests (incl. db; model tests skip without weights)
+        run: uv run pytest
+      - name: API client matches the FastAPI schema
+        run: |
+          uv run python -m tools.export_openapi
+          git diff --exit-code -- ../frontend/src/api/openapi.json \
+            || { echo "::error::openapi.json is stale: run 'npm run gen:api' in frontend/ and commit"; exit 1; }
+
+  frontend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Generated types match openapi.json
+        run: |
+          npx openapi-typescript src/api/openapi.json -o src/api/schema.ts
+          git diff --exit-code -- src/api/schema.ts \
+            || { echo "::error::schema.ts is stale: run 'npm run gen:api' and commit"; exit 1; }
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test
+
+  privacy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the scan covers every commit
+      - run: bash scripts/privacy_check.sh

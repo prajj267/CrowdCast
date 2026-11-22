@@ -5,10 +5,10 @@
 buckets that ended by then (bucket_start < issued_at), so replays at any speed-up and
 back-fills produce the same predictions as a live run (no wall-clock time anywhere).
 
-Model choice: there is no trained model yet, so every forecast is the B0 persistence fallback
-(``is_fallback = true``, logged). When a learned model is active, a failure or a cold start
-(< 15 min of history) still falls back to B0. Persistence has no spread, so p10 = p50 = p90
-(no uncertainty is invented).
+Model choice: the active learned model (``model_versions.is_active``) forecasts each zone. With
+no active model, during a cold start (< 15 min of history) or on any model failure, the zone
+gets the B0 persistence fallback (``is_fallback = true``, logged). Persistence has no spread, so
+p10 = p50 = p90 (no uncertainty is invented).
 
 Data separation (CLAUDE.md §6): a synthetic event is forecast from SYNTHETIC observations,
 any other event from REAL ones; MANUAL counts are ground truth, never model input here.

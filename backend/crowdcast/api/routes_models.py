@@ -12,8 +12,7 @@ from sqlalchemy import select
 from crowdcast.api.deps import SessionDep
 from crowdcast.api.errors import ApiError
 from crowdcast.common.config import REPO_ROOT
-from crowdcast.forecasting.features import FeatureSet
-from crowdcast.forecasting.xgb import artifacts_complete
+from crowdcast.forecasting.interfaces import FeatureSet, artifacts_complete
 from crowdcast.storage.interfaces import ModelVersion, repository
 
 router = APIRouter(prefix="/api/models", tags=["models"])

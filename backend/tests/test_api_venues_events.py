@@ -139,9 +139,9 @@ def test_status_planned_live_ended(world: World) -> None:
     r = world.client.patch(url, json={"status": "ENDED"})
     assert r.status_code == 200 and r.json()["status"] == "ENDED"
     audit = world.session.scalars(
-        select(AuditLog).where(
-            AuditLog.entity_id == world.event_id, AuditLog.action == "EVENT_STATUS"
-        )
+        select(AuditLog)
+        .where(AuditLog.entity_id == world.event_id, AuditLog.action == "EVENT_STATUS")
+        .order_by(AuditLog.audit_id)  # without ORDER BY, row order is not guaranteed (flaky)
     ).all()
     assert [a.details for a in audit] == [
         {"from": "PLANNED", "to": "LIVE"},

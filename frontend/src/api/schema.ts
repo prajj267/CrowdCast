@@ -196,6 +196,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Models */
+        get: operations["list_models_api_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/{model_version_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate
+         * @description Make one model the active forecaster; the previous one is deactivated (doc 14 §3.15).
+         */
+        post: operations["activate_api_models__model_version_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/predictions/{event_id}": {
         parameters: {
             query?: never;
@@ -311,6 +348,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Activation */
+        Activation: {
+            /** Is Active */
+            is_active: boolean;
+            /** Model Version Id */
+            model_version_id: number;
+            /** Previous Active */
+            previous_active: number | null;
+        };
         /** ActiveModel */
         ActiveModel: {
             /** Model Version Id */
@@ -596,6 +642,35 @@ export interface components {
             model: components["schemas"]["ModelRef"] | null;
             /** Zones */
             zones: components["schemas"]["ZoneForecasts"][];
+        };
+        /** ModelList */
+        ModelList: {
+            /** Models */
+            models: components["schemas"]["ModelOut"][];
+        };
+        /** ModelOut */
+        ModelOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Feature Set */
+            feature_set: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            } | null;
+            /** Model Family */
+            model_family: string;
+            /** Model Version Id */
+            model_version_id: number;
+            /** Name */
+            name: string;
+            /** Version */
+            version: string;
         };
         /** ModelRef */
         ModelRef: {
@@ -1231,6 +1306,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    list_models_api_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelList"];
+                };
+            };
+        };
+    };
+    activate_api_models__model_version_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Activation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -30,17 +30,8 @@ class Settings(BaseSettings):
         default=["http://localhost:5173"],
         description="Allowed frontend origins (Vite dev server by default).",
     )
-    prediction_offset_s: int = Field(
-        default=10,
-        ge=0,
-        le=50,
-        description="Seconds after a minute boundary before the prediction cycle runs "
-        "(grace period for late observations, 07 §5).",
-    )
-    model_dir: Path = Field(
-        default=REPO_ROOT / "models",
-        description="Directory of the model registry (git-ignored).",
-    )
+    # No prediction-offset or model-directory setting: the cycle runs on event time taken from
+    # the data (doc 10 §12), and model artefacts are always under <repo>/models (9.4 audit).
     retention_days_data: int = Field(default=365, ge=1)
 
 

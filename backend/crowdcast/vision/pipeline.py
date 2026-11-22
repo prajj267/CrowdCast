@@ -11,7 +11,7 @@ from collections.abc import Iterable
 
 from shapely.geometry import Polygon
 
-from crowdcast.aggregation.counting import (
+from crowdcast.aggregation.interfaces import (
     CrossingCounter,
     FrameStats,
     MinuteAggregator,
