@@ -181,8 +181,8 @@ def main(argv: list[str] | None = None) -> int:
         m = c["model_cycles"]
         print(
             f"event {c['event_id']} ({c['zones']} zones): {m['n']} model cycles, median "
-            f"{m['median_s']:.3f} s, p95 {m['p95_s']:.3f} s, max {m['max_s']:.3f} s; first "
-            f"(model load) {c['first_model_cycle_s']:.3f} s; budget {BUDGET_S} s -> "
+            f"{m['median_s']:.3f} s, p95 {m['p95_s']:.3f} s, max {m['max_s']:.3f} s; first model "
+            f"cycle {c['first_model_cycle_s']:.3f} s; budget {BUDGET_S} s -> "
             f"{'OK' if c['within_budget'] else 'OVER'}"
         )
     print(f"{'PASSED' if result['passed'] else 'FAILED'}; written {path}")
