@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 7 (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 7.3.1 run — validation ablation on SYN-clean, then SYN-noisy (Phase 7)
+**Next task:** 7.3.2 SYN-noisy tuning run (running), then tuned validation ablations clean + noisy with `--params` (closes 7.3.1–7.3.3) (Phase 7)
 
 ---
 
@@ -338,6 +338,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-22 | 7.3.2 (run) | SYN-clean tuning finished (15 cells, 300 trials, 7.8 h; logged as tuning-20261121T172441Z); tuned parameters committed in `configs/tuning/`; SYN-noisy tuning started | Best max_depth at the search-space upper bound (8) in 12/15 cells, kept as documented and noted in the log; CV scores are training-event scores, not results | Tuned validation ablations (clean, noisy); 7.3.5 statistics code |
 | 2026-11-21 | 7.3.1 runs, 7.3.2, 7.3.3 (code) | Validation ablations SYN-clean and SYN-noisy logged; Optuna tuning tool (20 trials × 3 folds, deviation logged) — SYN-clean tuning run started; split-conformal CQR (`forecasting/conformal.py`): offsets per horizon in the model manifest, applied by the online cycle, computed by `train.py`; ablation reports raw and conformal coverage/width (validation: 2-fold cross-calibration by event); doc 10 §11 implementation notes | 7.3.3 is ticked only after coverage is measured with tuned models. Postgres tests skipped (Docker off; no DB code changed) | finish tuning (clean, then noisy) → tuned validation ablation with conformal coverage |
 | 2026-11-21 | 7.1.1–7.1.3, 7.2.2, 7.2.3 | Public data (Mall, SHT-B test, MOT20-01/03; MOT20 archive deleted after extraction); count MAE by band (`eval_counts`), flow error on virtual lines (`eval_flows`); noise model calibrated (`calibrate_noise` → `configs/crowdsim/noise_calibrated.yaml`); SYN-noisy for all 180 events (`make_noisy`); dataset/ablation `--data clean\|noisy` with the clean target kept | Negative result: SHT-B relative MAE 0.711. Count runs recorded the end commit (logged with justification; tools fixed). Tests needing Postgres skipped this session (Docker not running; no DB code changed) | 7.3.1 validation ablation (clean, then noisy, one at a time) |
 | 2026-11-21 | 6.3.3, 6.3.4, MS3 | `tools/vision/run_camera.py` (camera YAML → pipeline → REAL observations via the ingestion API, aggregates-only summary); Shibuya demo venue/camera/event configs (illustrative halves, illustrative event time); fixed-clip regression test (first 5 s, tiled YOLOX-s, frozen aggregates). **MS3 met:** the public clip produced REAL observations end to end (2 zone-minutes, 0 rejected; logged as a demo, no ground truth) | To place polygons, one downscaled frame was viewed in the scratch folder and deleted immediately (never in the repo or DB). Untiled detection found almost nobody in the dense clip, so the regression test uses tiling | 7.1.1 |
