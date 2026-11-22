@@ -9,7 +9,7 @@ from crowdcast.forecasting.baselines import (
     b3_conservation,
     forward_fill,
 )
-from crowdcast.forecasting.cycle import CycleResult, origin_for, run_cycle
+from crowdcast.forecasting.cycle import CycleResult, origin_for, preload_active_model, run_cycle
 
 __all__ = [
     "HORIZONS",
@@ -21,5 +21,6 @@ __all__ = [
     "b3_conservation",
     "forward_fill",
     "origin_for",
+    "preload_active_model",
     "run_cycle",
 ]

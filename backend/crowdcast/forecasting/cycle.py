@@ -169,6 +169,25 @@ def _forecaster(mv: ModelVersion) -> QuantileForecaster:
     return _LOADED[mv.model_version_id]
 
 
+def preload_active_model(session: Session) -> ModelVersion | None:
+    """Load the active learned model's files now, so the first cycle is not slowed down.
+
+    Loading the boosters of the 3 horizons takes seconds (WORKFLOW 9.2 measured ~14 s, more
+    than the 5-s cycle budget), so the cycle driver calls this at start-up and between polls.
+    Returns the model, or None if no learned model is active or its files cannot be loaded;
+    in that case the cycle itself falls back to B0, exactly as without a preload.
+    """
+    mv = repository.active_model_version(session)
+    if mv is None or mv.model_family != "XGBOOST":
+        return None
+    try:
+        _forecaster(mv)
+    except Exception:  # missing / corrupt files: the cycle falls back to B0 and logs it
+        log.warning("could not preload model %s", mv.model_version_id, exc_info=True)
+        return None
+    return mv
+
+
 def _model_quantiles(
     session: Session,
     event: Event,

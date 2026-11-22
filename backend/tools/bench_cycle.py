@@ -11,8 +11,8 @@ timed for
    config loader and its CROWDSIM run is replayed through the real API app
    (``POST /api/crowd/observations``, AD-02), all inside the same rolled-back transaction.
 
-The first cycle of a case includes loading the model files (reported separately); the budget
-is checked on the steady-state cycles after the 15-min cold start.
+The model files are preloaded first, as the cycle driver does at start-up, and that load time
+is reported separately; the budget is checked on every model cycle after the 15-min cold start.
 
 Usage (from backend/, Postgres up, an XGBoost model active, clean tree):
   uv run python -m tools.bench_cycle
@@ -38,7 +38,12 @@ from crowdcast.api.app import app
 from crowdcast.api.deps import get_session
 from crowdcast.common.config import REPO_ROOT
 from crowdcast.common.time import utc_now
-from crowdcast.forecasting.cycle import COLD_START_MIN, origin_for, run_cycle
+from crowdcast.forecasting.cycle import (
+    COLD_START_MIN,
+    origin_for,
+    preload_active_model,
+    run_cycle,
+)
 from crowdcast.storage.interfaces import get_engine, load_event, load_venue, repository
 from crowdcast.venue_graph.interfaces import load_event_config, load_venue_config
 from tools.crowdsim.replay import replay
@@ -76,10 +81,9 @@ def time_cycles(session: Session, event_id: int, every_min: int) -> dict[str, An
         t0 = time.perf_counter()
         r = run_cycle(session, event_id, t)
         dt = time.perf_counter() - t0
-        if r.model_zones and first_model_s is None:
-            first_model_s = dt  # includes loading the model files
-        elif r.model_zones:
-            warm.append(dt)
+        if r.model_zones:
+            first_model_s = dt if first_model_s is None else first_model_s
+            warm.append(dt)  # the model is preloaded, so the first cycle counts too
         else:
             cold.append(dt)
             fallbacks += 1
@@ -143,6 +147,10 @@ def main(argv: list[str] | None = None) -> int:
                     )
                     return 2
                 print(f"model {model.model_version_id} {model.name} {model.version}")
+                t_load = time.perf_counter()
+                preload_active_model(session)  # as the cycle driver does at start-up
+                load_s = time.perf_counter() - t_load
+                print(f"model files loaded in {load_s:.1f} s (preload, before any cycle)")
                 cases = [time_cycles(session, args.event_id, args.every)]
                 print(f"V1 done: {json.dumps(cases[-1])}")
                 cases.append(time_cycles(session, load_v3(session), args.every))
@@ -159,6 +167,7 @@ def main(argv: list[str] | None = None) -> int:
         "budget_s": BUDGET_S,
         "model": {"id": model.model_version_id, "name": model.name, "version": model.version},
         "cold_start_min": COLD_START_MIN,
+        "model_preload_s": load_s,
         "data_origin": "SYNTHETIC",
         "machine": "Ryzen 7 8840HS, 31 GB RAM, CPU only (reference machine)",
         "note": "all writes rolled back; V3 loaded and replayed inside the transaction",

@@ -20,7 +20,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-from crowdcast.forecasting.interfaces import origin_for, run_cycle
+from crowdcast.forecasting.interfaces import origin_for, preload_active_model, run_cycle
 from crowdcast.storage.interfaces import repository, session_scope
 
 ONE_MIN = timedelta(minutes=1)
@@ -44,6 +44,23 @@ def first_issue_time(event_id: int) -> datetime | None:
     return None if first is None else first + ONE_MIN
 
 
+def preload(announced: int | None) -> int | None:
+    """Load the active model's files before cycles are due (WORKFLOW 9.2: loading takes
+    seconds, longer than the 5-s cycle budget). Cheap once loaded; a model activated while
+    following is loaded between polls instead of inside the next cycle. Returns its id."""
+    t0 = time.perf_counter()
+    with session_scope() as s:
+        mv = preload_active_model(s)
+        if mv is None:
+            return None
+        if mv.model_version_id != announced:
+            print(
+                f"model {mv.model_version_id} {mv.name} {mv.version} ready "
+                f"({time.perf_counter() - t0:.1f} s)"
+            )
+        return mv.model_version_id
+
+
 def run_range(event_id: int, start: datetime, end: datetime) -> int:
     """Cycles for issue times start..end inclusive, one transaction each."""
     written = 0
@@ -65,6 +82,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING)
 
+    model = preload(None)
+    if model is None:
+        print("no learned model active: cycles use B0 persistence")
     start = args.start or first_issue_time(args.event_id)
     end = args.end or latest_issue_time(args.event_id)
     if start is None or end is None:
@@ -85,6 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     print("following; Ctrl+C to stop")
     try:
         while True:
+            model = preload(model)
             latest = latest_issue_time(args.event_id)
             if latest is not None and (done is None or latest > done):
                 first = latest if done is None else done + ONE_MIN

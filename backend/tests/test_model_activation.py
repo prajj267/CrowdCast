@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from crowdcast.api.app import create_app
 from crowdcast.api.deps import get_session
 from crowdcast.common.enums import DataOrigin
+from crowdcast.forecasting import cycle
 from crowdcast.forecasting.features import (
     FeatureSet,
     History,
@@ -28,7 +29,7 @@ from crowdcast.forecasting.features import (
     build_features,
     feature_columns,
 )
-from crowdcast.forecasting.interfaces import HORIZONS, run_cycle
+from crowdcast.forecasting.interfaces import HORIZONS, preload_active_model, run_cycle
 from crowdcast.forecasting.sources import published_schedule, venue_info
 from crowdcast.forecasting.xgb import save_model, train_booster
 from crowdcast.storage.interfaces import (
@@ -216,3 +217,30 @@ def test_activation_switches_and_validates(world: World, tiny_model_dir: Path) -
     assert world.client.post("/api/models/999999999/activate").status_code == 404
     listed = world.client.get("/api/models").json()["models"]
     assert any(m["model_version_id"] == second and m["is_active"] for m in listed)
+
+
+def test_preload_loads_the_active_model_before_any_cycle(
+    world: World, tiny_model_dir: Path
+) -> None:
+    assert preload_active_model(world.session) is None  # nothing active yet
+    mid = _register(world.session, tiny_model_dir)
+    world.client.post(f"/api/models/{mid}/activate")
+    cycle._LOADED.pop(mid, None)
+    mv = preload_active_model(world.session)
+    assert mv is not None and mv.model_version_id == mid
+    assert mid in cycle._LOADED  # the first cycle will not load files
+    _observe(world, range(30))
+    result = run_cycle(world.session, world.event_id, world.start + timedelta(minutes=30))
+    assert len(result.model_zones) == 8
+
+
+def test_preload_of_missing_files_is_a_warning_not_a_crash(
+    world: World, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    # files removed AFTER activation (the API itself refuses to activate missing files)
+    mid = _register(world.session, tmp_path / "does_not_exist")
+    world.session.get(ModelVersion, mid).is_active = True  # type: ignore[union-attr]
+    world.session.flush()
+    with caplog.at_level(logging.WARNING, logger="crowdcast.forecasting"):
+        assert preload_active_model(world.session) is None
+    assert "could not preload model" in caplog.text
