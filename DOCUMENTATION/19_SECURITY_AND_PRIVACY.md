@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
-| Status | Proposed controls; legal applicability must be confirmed by the team's institution |
+| Version | 0.2 |
+| Status | §1 and §7 hold as written. **§9 lists which controls the solo prototype implements and wins over §2–§6, §8**. Legal applicability must be confirmed with the institution if recording is ever reconsidered |
 
 ---
 
@@ -93,3 +93,31 @@ Operators never see video in CROWDCAST. Live CCTV viewing, if needed, remains in
 ## 8. Security testing
 
 Role matrix tests (TC-API-01), negative validation tests, throttling test (TC-API-08), dependency audit, manual review against OWASP API Security Top 10 (2023) before the final demo.
+
+## 9. Solo implementation (v0.2, 9.4 audit)
+
+The prototype is built and run by one developer on one laptop, uses **no own recordings** (D6: public datasets and public clips only) and has **no authentication** (D7). Everything listens on `127.0.0.1` ([18](18_DEPLOYMENT_PLAN.md)). The privacy position in §1 is implemented; most of the access controls in §2–§4 protect things that do not exist in this scope.
+
+| Control (section) | Status |
+|---|---|
+| No identification, no appearance features, ephemeral tracks, aggregates only (§1) | **Implemented.** YOLOX person boxes and the in-house ByteTrack use geometry and motion only; tracks live in memory during a `run_camera` run; the database has no per-person table or column. Checked over the whole git history by `scripts/privacy_check.sh` (WORKFLOW 9.3), which also runs in CI |
+| Video stays local (§1) | **Implemented.** Public clips and datasets sit in git-ignored folders (`videos/`, `data/`); only per-minute aggregates are posted |
+| Short retention of recordings (§1, §6) | Not applicable (no own recordings); no deletion job for database rows. Logged in the WORKFLOW Deviation log (2026-11-22) |
+| "<5" rounding for `sensitive` zones in exports (§1, Should) | **Not built.** No `sensitive` zone flag exists; the History CSV export writes exact counts. The data are SYNTHETIC or counts from public footage |
+| User accounts, JWT, RBAC, event assignment, login throttling (§2, §3) | **Not built (D7).** No users or roles; every endpoint is open to anyone who can reach `127.0.0.1:8000`. Acceptable only for a local, single-user prototype; required before any shared or networked deployment |
+| SERVICE API keys for ingestion (§2) | **Not built (D7).** Any local process can post observations |
+| `data_origin` enforcement (§2) | **Implemented** without the ADMIN exception: SYNTHETIC rows are refused for real events, REAL rows need a LIVE event and may not lie more than 2 min in the future (`ingestion/validation.py`; tests in `test_api_ingestion.py`) |
+| Camera URIs encrypted (Fernet), never returned (§2, §4) | **Not built.** Camera configuration is a local YAML file pointing at a public clip; there are no camera endpoints ([14 §6](14_API_SPECIFICATION.md)) |
+| Frontend XSS / CSRF (§2) | React escaping only. No CSP header, no cookies (no auth), no SVG upload |
+| Database exposure (§2, §4) | Port bound to `127.0.0.1` in `docker-compose.yml`; credentials from `.env` (never committed). No separate least-privilege user, no backups ([18 §6](18_DEPLOYMENT_PLAN.md)) |
+| Dependency audit (§2, §8) | **Not built.** Versions are locked (`uv.lock`, `package-lock.json`); `pip-audit` / `npm audit` are not in CI |
+| HTTPS (§4) | Not used; all traffic is on the loopback interface |
+| Recording governance (§5) | Not triggered (D6). If recording is ever reconsidered, §5 applies in full and approval comes first |
+| Security testing (§8) | Role and throttling tests not applicable (D7). Validation tests exist ([17 §5](17_TESTING_STRATEGY.md)). No OWASP review has been done |
+
+## 10. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 0.2 | 2026-11-23 | §9 added (9.4 audit, F-19): what the solo prototype implements; auth controls out of scope (D7) |
+| 0.1 | — | Team plan |

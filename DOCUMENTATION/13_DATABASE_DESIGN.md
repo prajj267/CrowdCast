@@ -150,6 +150,8 @@ Not created (no users, decision D7).
 | p1, p2 | jsonb | `[x,y]` image pixels |
 | positive_side_zone_id | bigint | **FK → zones** (or NULL = outside); crossing toward this side counts as entering it |
 
+> **Implementation note (9.4 audit, F-13).** Tables 3.8–3.10 exist in the schema but are **never written**: no loader or endpoint fills them ([14 §6](14_API_SPECIFICATION.md)), and `tools.vision.run_camera` reads the camera geometry from a YAML file ([12 §6](12_DATASET_AND_DATA_COLLECTION.md)). Consequences: event responses report `camera_count` 0; the constraints above are not what protects camera data. The YAML validator (`venue_graph/camera_config.py`) enforces the same rules instead: one primary region per zone, **one counting line per connection** (added 2026-11-23), and lines only on connections that exist. The graph warning `NO_COUNTING_LINE` ([11 §9](11_SPATIAL_INTELLIGENCE.md) rule 4) is implemented in `VenueGraph.validate(observed_connections=…)` but nothing in the running system passes the observed connections, so it never appears in `GET …/graph/validate`. The tables are kept so that a later camera loader needs no migration.
+
 ### 3.11 `crowd_observations` (time series)
 
 | Column | Type | Constraints |
@@ -304,3 +306,4 @@ VALUES (1, 2, '2027-03-12 13:52:00+00', 15, '2027-03-12 14:07:00+00', 360, 418, 
 | 0.2 | 2026-11-20 | `congestion_alerts.auto_resolved` (boolean) replaces `resolved_by`; `audit_log.actor` ('USER' / 'SYSTEM') replaces `user_id` | Keeps the information those columns carried without users |
 | 0.2 | 2026-11-20 | `camera_sources.uri` (text, local file path) replaces `uri_encrypted` (bytea, Fernet) | D6: recorded public-dataset files only, no camera credentials to protect |
 | 0.2 | 2026-11-20 | Made explicit: NULLS NOT DISTINCT on the `zone_connections` key; COALESCE-to-default in the threshold-order CHECK; CHECK tying `horizon_min` / `predicted_onset` to `alert_type`; `prediction_id` ON DELETE SET NULL | Close gaps in v0.1 that would have let invalid rows in |
+| 0.2 | 2026-11-23 | Implementation note under §3.10: camera tables are never written; camera rules are enforced by the YAML validator | 9.4 audit, F-13 (no schema change) |

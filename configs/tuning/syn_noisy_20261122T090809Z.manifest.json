@@ -1,0 +1,21 @@
+{
+ "run": "20261122T090809Z",
+ "git_commit": "571c74419d37b012cb9bdf91a4d84305a62879e9",
+ "data_origin": "SYNTHETIC",
+ "data": "SYN-noisy inputs (targets: true simulator states), CROWDSIM regime A",
+ "events": "training split only (84 events)",
+ "data_hash_train": "946163c83b0bcf6faa82cd50da3ec1cda49e867e581ca55dcc68453ab4a4bd44",
+ "method": "Optuna TPE (seed 2027), 20 trials, GroupKFold 3 folds by event; median model (alpha 0.5); objective mean per-event MAE (persons); early stopping on the held-out fold",
+ "feature_sets": [
+  "A1",
+  "A2",
+  "A3",
+  "A4",
+  "A4_NONBR"
+ ],
+ "horizons": [
+  5,
+  15,
+  30
+ ]
+}

@@ -91,6 +91,11 @@ class CameraConfig(_Strict):
         dup = sorted({z for z in primaries if primaries.count(z) > 1})
         if dup:
             raise ValueError(f"more than one primary region for zones {dup}")
+        # Doc 09 §8: one counting line per connection (either direction), else flows double count.
+        conns = [frozenset((ln.from_, ln.to)) for ln in self.lines]
+        twice = sorted("-".join(sorted(c)) for c in set(conns) if conns.count(c) > 1)
+        if twice:
+            raise ValueError(f"more than one counting line for connections {twice}")
         return self
 
     def check_against_venue(self, venue: VenueConfig) -> None:

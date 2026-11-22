@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
+| Version | 0.2 (**§5 lists what is actually tested and wins over §1–§4**) |
 | Tools | pytest, pytest-cov, httpx (FastAPI TestClient), Hypothesis, testcontainers-postgres, Vitest, React Testing Library, Playwright, Locust |
 
 ---
@@ -135,3 +135,75 @@ CI: GitHub Actions (free tier) running lint, type checks, unit, integration and 
 ## 4. Definition of done (per feature)
 
 Code reviewed by another team member; unit tests added; CI green; requirement IDs referenced in PR description; docs updated if a contract changed.
+
+## 5. Solo implementation and traceability (v0.2, 9.4 audit)
+
+Where this section and §1–§4 differ, this section wins. The solo definition of done is in `CLAUDE.md §8` (ruff, mypy and pytest pass; tests cover the new logic; no code review by a second person).
+
+### 5.1 Tooling as built
+
+| Topic | Planned (§1, §3) | Implemented |
+|---|---|---|
+| Unit, integration, API | pytest, httpx, testcontainers | pytest with FastAPI `TestClient`. Tests marked `db` run against the Docker PostgreSQL inside a rolled-back transaction and are **skipped** when it is down (no testcontainers). Hypothesis (property testing) is not used |
+| CV tests | Fixed clips, GPU optional | `test_cv_regression.py` (marker `model`, skipped without `models/yolox/`): first 5 s of the public Shibuya clip, CPU. Accuracy is measured by the Phase 7 evaluation runs in `EXPERIMENT_LOG.md`, not by tests |
+| Frontend | Vitest + RTL + MSW | Vitest + Testing Library with a mocked API client (no MSW) |
+| Performance | pytest-benchmark, Locust | `tools.bench_cycle` (prediction cycle) and `tools.vision.bench_detector` (detector), each a logged run. No Locust, no pytest-benchmark |
+| End-to-end | Playwright + docker compose | `tools.smoke_e2e`: migrations → config → CROWDSIM → replay through the API → predictions → alerts on a throwaway database, checked through the API. No browser automation |
+| CI | GitHub Actions: lint, types, unit, integration, API | `.github/workflows/ci.yml`: ruff, mypy, full pytest with a PostgreSQL 16 service, OpenAPI client drift, frontend format/lint/build/Vitest, privacy check. Tests needing model files or videos are skipped there |
+| Test data (§3) | Fixture YAML, staged clips (consented), Mall subset | Committed venue/event YAML in `configs/`; synthetic series built inside the tests. No staged clips (D6: public datasets only). No dataset or video is committed |
+
+### 5.2 Test-case traceability
+
+Status: **Named**: a test carries the ID in its name or description. **Covered**: a test checks the same behaviour under another name. **Partial**: only part of the expected result is checked. **Tool**: checked by a logged tool run, not a test. **Not built**: the feature is out of solo scope. **Open**: not tested. Backend tests are in `backend/tests/`, frontend tests in `frontend/src/`.
+
+| ID | Status | Where | Note |
+|---|---|---|---|
+| TC-CV-01 | Partial | `test_counting.py::test_foot_points_counted_per_region` | Inside/outside checked; the on-edge case is not |
+| TC-CV-02 | Covered | `test_counting.py::test_crossing_counts_in_and_out_with_direction` | |
+| TC-CV-03 | Covered | `test_counting.py::test_jitter_inside_the_band_is_not_a_crossing` | |
+| TC-CV-04 | Covered | `test_counting.py::test_stepping_back_within_10_s_cancels` (+ 3 related tests) | Cancel window is 10 s as in [09 §6.2](09_COMPUTER_VISION_METHODOLOGY.md), not 5 s |
+| TC-CV-05 | Not built | — | One camera per run; no fusion across cameras |
+| TC-CV-06 | Covered | `test_counting.py::test_minute_median_coverage_and_quality` | Coverage 0.5: raw 3 → occupancy 6 |
+| TC-OBS-01 | Covered | same test | Median of the minute, quality OK |
+| TC-OBS-02 | Covered | same test | Quality PARTIAL |
+| TC-OBS-03 | Partial | `test_api_ingestion.py::test_missing_quality_allows_null_occupancy` | The aggregator posts no row for a minute without frames; the API accepts MISSING with null occupancy |
+| TC-GR-01 to 03 | Named | `test_venue_graph.py::test_tc_gr_0*` | |
+| TC-GR-04 | Covered | `test_crowdsim.py::test_conservation_holds_exactly` | Exact check on simulator runs, not a Hypothesis property test |
+| TC-CNG-01 to 03 | Named | `test_risk_levels.py::test_tc_cng_0*` | |
+| TC-ALR-01 to 06 | Named | `test_risk_alerts.py::test_tc_alr_0*` | Also `test_risk_engine.py` against the database |
+| TC-ML-01 | Partial | `test_features.py` (schedule values, target) | Hand values for schedule features and the target; no single hand-made 3-zone check of every group |
+| TC-ML-02 | Named | `test_features.py::test_tc_ml_02_truncated_series_gives_same_features` | Also `test_changing_the_future_does_not_change_features`, `test_actual_schedule_never_reaches_features` |
+| TC-ML-03 | Covered | `test_splits.py` | Committed `splits.json` disjoint; overlap rejected |
+| TC-ML-04 | Covered | `test_features.py::test_online_60_minute_window_equals_the_whole_event` | Training and the cycle call the same `FeatureBuilder` |
+| TC-ML-05 | Partial | `test_xgb.py::test_inverse_transform_floors_at_zero_and_sorts_quantiles`, `::test_quantile_model_orders_quantiles_and_round_trips` | Ordering and non-negativity checked on fixed inputs, not 10⁴ random ones |
+| TC-ML-06 | Partial | `test_crowdsim.py::test_same_seed_same_output`, `test_splits.py::test_split_is_reproducible_from_the_seed` | Data and splits are reproducible; repeated training runs are not compared by a test |
+| TC-ML-07 | Covered | `test_model_activation.py::test_cold_start_falls_back_to_persistence`, `::test_broken_model_falls_back_and_logs`; `test_xgb.py::test_missing_artifacts_are_reported` | |
+| TC-ML-08 | Partial | `test_baselines.py` | B0–B3 checked on hand-made series, not specifically on a constant one |
+| TC-ML-09 | Partial | `test_ablation.py` | Checks that baselines and per-event metrics are computed; XGB vs B0 is compared in the logged ablation runs |
+| TC-API-01, 02, 08 | Not built | — | No roles, assignments or login (D7) |
+| TC-API-03 | Covered | `test_event_config.py::test_event_window_rules` | Events come from YAML ([12 §6](12_DATASET_AND_DATA_COLLECTION.md)); the config loader rejects the file instead of an API 422. The database also has a CHECK constraint |
+| TC-API-04 | Covered | `test_api_ingestion.py::test_partial_rejection_keeps_valid_rows` | |
+| TC-API-05 | Covered | `test_api_ingestion.py::test_same_key_again_is_an_update` | |
+| TC-API-06 | Covered | `test_api_ingestion.py::test_synthetic_into_real_event_is_refused` | |
+| TC-API-07 | Not built | — | No camera endpoints ([14 §6](14_API_SPECIFICATION.md)) |
+| TC-API-09 | Covered | `test_api_venues_events.py::test_invalid_transition_is_409` | |
+| TC-CV-10 | Not built | — | No staged clip (D6). Crossing accuracy is measured on MOT20 instead (EXPERIMENT_LOG run `flows_20261121T145720Z`) |
+| TC-CV-11 | Covered | `test_cv_regression.py` | Regression guard on the Shibuya clip instead of Mall frames |
+| TC-CV-12 | Not built | — | Offline, one clip per run; no live streams |
+| TC-FE-01 to 05 | Named | `components.test.tsx`, `live.test.tsx`, `Shell.test.tsx`, `mutations.test.tsx` | |
+| TC-PERF-01 | Tool | `tools.bench_cycle` | Logged in `EXPERIMENT_LOG.md` (WORKFLOW 9.2) |
+| TC-PERF-02 | Open | — | No API load test |
+| TC-PERF-03 | Tool | `tools.vision.bench_detector` | YOLOX instead of `yolo11n` (D2); CV runs offline, so 5 FPS is the sampling rate, not a real-time target. Logged in `EXPERIMENT_LOG.md` |
+| TC-PERF-04 | Open | — | Batch limits are tested (`test_batch_size_limits`), ingest time is not |
+| TC-E2E-01 | Not built | — | Configuration is YAML, not the UI |
+| TC-E2E-02, 03 | Partial | `tools.smoke_e2e` | Replay → predictions at 5/15/30 min → alerts, checked through the API; no browser, no freshness or latency timing, no scripted surge |
+| TC-E2E-04 | Partial | `test_api_dashboard_reads.py`, `frontend/src/hooks/mutations.test.tsx` | Acknowledge/resolve tested at API and component level; `smoke_e2e` checks auto-resolve only |
+| TC-E2E-05 | Open | — | Restart recovery not tested |
+| TC-E2E-06 | Tool | `tools.vision.run_camera` | One logged demonstration run on a public clip (EXPERIMENT_LOG `cv-SHIBUYA1-20261120T234449Z`); not automated |
+
+## 6. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 0.2 | 2026-11-23 | §5 added (9.4 audit, F-17): tooling as built, traceability of every test-case ID |
+| 0.1 | — | Team plan |

@@ -245,7 +245,7 @@ lines:                             # counting lines (09 §6.2)
     positive_side: MS              # crossing towards this side = entering this zone
 ```
 
-Errors: unknown keys; naive `recording_start`; self-intersecting polygons; points outside the image; two primary regions for one zone; a line whose `positive_side` is not one of its ends; and (when checked against the venue) unknown zones or a line on a connection the venue does not have.
+Errors: unknown keys; naive `recording_start`; self-intersecting polygons; points outside the image; two primary regions for one zone; two counting lines on the same connection (either direction; added 2026-11-23, 9.4 audit); a line whose `positive_side` is not one of its ends; and (when checked against the venue) unknown zones or a line on a connection the venue does not have.
 
 ## 7. Data labelling summary
 
@@ -259,6 +259,7 @@ Errors: unknown keys; naive `recording_start`; self-intersecting polygons; point
 
 | Version | Date | Change |
 |---|---|---|
+| 0.4.1 | 2026-11-23 | §6.3: a camera file may have only one counting line per connection (doc 09 §8; 9.4 audit, F-13). Stricter validation, format unchanged |
 | 0.4 | 2026-11-21 | §6.3 added: camera YAML format v1 (event-time start, regions with coverage and primary flag, counting lines on venue connections) — WORKFLOW 6.1.2 |
 | 0.3 | 2026-11-20 | §6.2 added: event + published-schedule YAML format v1 (UTC conversion, event-window and venue-zone checks) — WORKFLOW 2.1.3 |
 | 0.2 | 2026-11-20 | §6.1 added: full venue YAML format v1 (`format_version`, `illustrative` flag, field limits, derived entry/exit flags, load-time rules) — WORKFLOW 2.1.1 |

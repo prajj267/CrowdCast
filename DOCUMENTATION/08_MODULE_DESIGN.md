@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
-| Status | Proposed — interfaces are design contracts, not implemented code |
+| Version | 0.2 |
+| Status | Implemented (solo scope). **The section "Solo implementation" at the end lists what was built and wins over the design sections** |
 
-Interface signatures below are written in Python-style pseudocode to fix names and types. They are design contracts; implementation may refine them but must keep the data contracts consistent with [13](13_DATABASE_DESIGN.md) and [14](14_API_SPECIFICATION.md).
+Interface signatures below are written in Python-style pseudocode to fix names and types. They were the design contracts; the implementation refined them while keeping the data contracts consistent with [13](13_DATABASE_DESIGN.md) and [14](14_API_SPECIFICATION.md). Each module's real public surface is its `backend/crowdcast/<module>/interfaces.py`.
 
 ---
 
@@ -247,3 +247,30 @@ flowchart TD
 ```
 
 Arrows mean "may depend on". No module depends on M8 or M9; M2 does not know about the database.
+
+## Solo implementation (v0.2, 9.4 audit)
+
+Built in WORKFLOW Phases 1–8 by one developer (CPU only). Where this table and the sections above differ, this table wins. Code paths are under `backend/`.
+
+| Module | Design above | Implemented |
+|---|---|---|
+| All | Pseudocode contracts | Each module exposes `crowdcast/<module>/interfaces.py`; other modules import only that file, enforced by `tests/test_module_boundaries.py` ([07 §9](07_SYSTEM_ARCHITECTURE.md)). `common` is shared. CLI tools in `tools/` are exempt |
+| M1 Video ingestion | `FileFrameSource`, `RtspFrameSource`; camera config from the API; one OS process per camera | `crowdcast/vision/frames.py` (`Frame`, `FrameSource`) reads a recorded file, samples to the target FPS and stamps **event time** from the configured start. Camera config comes from a YAML file (`venue_graph.load_camera_config`), not the API. One camera per `tools.vision.run_camera` run; no RTSP, no `realtime` sleep, no multiprocessing |
+| M2 CV processing | `yolo11n.pt` via Ultralytics, conf 0.25, ByteTrack via `supervision` | YOLOX-s ONNX (Apache-2.0, D2) on the CPU with tiling plus a full-frame pass (`vision/yolox_onnx.py`, `vision/tiling.py`); ByteTrack re-implemented in-house (`vision/tracking.py`). Region and line geometry in `aggregation/counting.py`. Parameters: [09 §12](09_COMPUTER_VISION_METHODOLOGY.md). Tracks stay in memory |
+| M3 Aggregation | Multi-camera fusion; retry with back-off; JSONL buffer (≤ 24 h) | `aggregation.MinuteAggregator`: median per minute, coverage correction, quality OK / PARTIAL / LOW_CONFIDENCE. A minute without frames produces no row (MISSING is not posted). One camera per zone, no fusion. Posting (`run_camera`) uses a plain HTTP call with no retry or local buffer: a failed post stops the run, which can be repeated (idempotent upserts). `mean_speed_mps` is always null; `method` is always `DETECTION` |
+| M4 Storage | Repository classes (`ObservationRepo`, `PredictionRepo`, `AlertRepo`) | Module-level functions in `storage/repository.py` (e.g. `upsert_observations`, `observation_window`, `upsert_predictions`) plus SQLAlchemy models; YAML loaders `load_venue` / `load_event`. The modules write no SQL of their own; the API routes go through the repository, except `routes_models.py`, which runs one ORM `select` on `model_versions` |
+| M5 Venue graph | `VenueGraph` built from M4 | `venue_graph.VenueGraph` (validation, adjacency, travel times) built from YAML or from the DB via `storage.repository.venue_graph`. `shortest_path` not built (routing is future work) |
+| M6 Prediction | `FeatureBuilder` class; `Forecaster` classes incl. LSTM, Graph; `models/<version>/manifest.json` | `forecasting/features.py` (`build_features`, `FeatureSet` A1–A4) is the shared feature builder for training and the cycle. Baselines B0–B3 are functions (`forecasting/baselines.py`); the learned model is `QuantileForecaster` (XGBoost, 3 horizons × 3 quantiles, plus split-conformal offsets). No LSTM or graph model (extensions, not started). `run_cycle(session, event_id, issued_at)` is driven by `tools.run_predictions` in event time. Artefacts: `models/xgb/<name>/<UTC timestamp>/` with a manifest, one `model_versions` row ([10 §13](10_ML_FORECASTING_METHODOLOGY.md)) |
+| M7 Risk engine | As specified | As specified (`risk/levels.py`, `risk/alerts.py`, `risk/engine.py`); default thresholds 0.60 / 0.80 / 0.95, overridable per zone in the venue YAML |
+| M8 API | Authentication, `require_role(...)`, FR-AUTH-* | No authentication (D7): no users, roles, tokens or `require_role`. Routers per resource, Pydantic schemas, standard error envelope, `X-Request-ID`. Endpoints not built are listed in [14 §6](14_API_SPECIFICATION.md) |
+| M9 Frontend | Route-level pages incl. login and admin | Five pages, no login; see [15 §7](15_FRONTEND_SPECIFICATION.md). Client types from `openapi-typescript`, as designed |
+| T1 CROWDSIM | Posts SYNTHETIC observations, optional noise | `tools/crowdsim/` (`run`, `generate`, `replay`, `plot`); the noise model is applied offline (`make_noisy`) to produce SYN-noisy; replay posts through the ingestion API (AD-02) |
+| T2 Training CLI | `crowdcast-train build-dataset / fit / evaluate / ablation` | No `crowdcast-train` command. Real commands (`uv run python -m …`): `tools.training.train --feature-set A4`, `tools.training.tune --data clean\|noisy`, `tools.training.ablation --split validation\|test --data clean\|noisy [--params …] [--final]`, `tools.training.stats <run>`, `tools.training.operational <run>`; splits are frozen in `configs/splits.json`. See `CLAUDE.md §10` |
+| Dependency rules | Diagram above | Holds, with M3 posting through `tools` (not from inside `aggregation`) and M5 reading YAML as well as M4 |
+
+### Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 0.2 | 2026-11-23 | Status → implemented; "Solo implementation" section added (9.4 audit, F-08) |
+| 0.1 | — | Team design |

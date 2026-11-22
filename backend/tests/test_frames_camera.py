@@ -78,6 +78,12 @@ def test_valid_camera_config_matches_the_venue() -> None:
         (lambda c: c["lines"][0].update(p2=[950, 2000]), "outside the 1920x1080 image"),
         (lambda c: c["lines"][0].update(positive_side="FC"), "one end of the connection"),
         (lambda c: c["regions"].append(dict(c["regions"][0])), "more than one primary"),
+        (  # same connection, opposite direction: still a second line on it (doc 09 §8)
+            lambda c: c["lines"].append(
+                {"from": "MS", "to": "C1", "p1": [960, 0], "p2": [960, 1080], "positive_side": "C1"}
+            ),
+            "more than one counting line",
+        ),
         (lambda c: c["camera"].update(recording_start="2026-11-01T10:00:00"), "timezone"),
     ],
 )
