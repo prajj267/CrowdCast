@@ -22,11 +22,11 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Done |
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Done (MS3) |
 | 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | In progress |
-| 8 | Dashboard completion (React) | 8–9 | 6 | — | In progress |
+| 8 | Dashboard completion (React) | 8–9 | 6 | — | Done |
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | Not started |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 7 runs (machine) + Phase 8 dashboard in parallel (Phase 0 still open: doc updates 0.3.x)
+**Current focus:** Phase 7 runs (noisy tuning, then tuned validation and test-split runs); Phase 9 next (Phase 0 still open: doc updates 0.3.x)
 **Next task:** 7.3.2 SYN-noisy tuning run (running), then tuned validation ablations clean + noisy with `--params` (closes 7.3.1–7.3.3) (Phase 7)
 
 ---
@@ -292,8 +292,8 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 8.2 Alerts view: list, acknowledge and resolve ([15 Page 7](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md))
 - [x] 8.3 History view with CSV export ([15 Page 6](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md))
 - [x] 8.4 Event and venue view (read-only, YAML import)
-- [ ] 8.5 Empty, stale-data and error states ([15 §4](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md)); data origin shown on screen (SYNTHETIC / REAL)
-- [ ] 8.6 Component tests (Vitest + React Testing Library) for level colouring, the alert list and the empty and stale states ([17 §2.7](DOCUMENTATION/17_TESTING_STRATEGY.md))
+- [x] 8.5 Empty, stale-data and error states ([15 §4](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md)); data origin shown on screen (SYNTHETIC / REAL)
+- [x] 8.6 Component tests (Vitest + React Testing Library) for level colouring, the alert list and the empty and stale states ([17 §2.7](DOCUMENTATION/17_TESTING_STRATEGY.md))
 
 **Exit:** the most at-risk zone can be found on the live view within seconds; every view handles missing data.
 
@@ -339,6 +339,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-22 | 8.5, 8.6 | Shared states (`Loading`, `EmptyState`, `ErrorState`, `Notice`) on every page; one global "Connection lost - showing data from HH:MM event time, last contact …" banner in the shell (per-page copies removed); data origin SYNTHETIC / REAL from the event itself (shown before any counts); synthetic banner text per doc 15 §4; forecast notices: warming up (first 15 min), stale forecasts (> 3 min behind the counts), all-fallback. Optimistic acknowledge / resolve with rollback on error (TC-FE-05). Tests: TC-FE-01 level badge (shape + word per level), TC-FE-02 stale / no-data / low-confidence ZoneCard, TC-FE-03 map horizon selector, TC-FE-04 synthetic banner + origin on all five pages + connection banner, TC-FE-05 optimistic update + rollback; notices and states. 45 frontend tests (9 files); connection-lost banner checked in the browser by stopping the API | Backend unchanged since the last full check (311 passed) | Phase 9; noisy tuning still running |
 | 2026-11-22 | 8.4 | Event & venue page (read-only): event facts + active model, venue-graph validation panel, published schedule as a per-zone `ScheduleStrip` + table, zones (type, area, capacity, thresholds with default/override), connections (width, travel time, direction); how to change it = YAML + `tools.load_config` (stated on the page). Placeholder page component removed (all five pages exist). 3 new tests (20 total); checked in the browser on event 1189 | No map on this page (Live has it); no create/edit forms (D1 scope: YAML import) | 8.5 states, 8.6 component tests |
 | 2026-11-22 | 8.3 | History page: occupancy (% of capacity) over the whole event for up to 4 chosen zones (default: highest peaks) with schedule bands, HIGH line, crosshair tooltip, legend and direct labels at each peak; predicted vs actual for a chosen zone and horizon with P10–P90 band and MAE; peaks table (max, time, minutes at HIGH or CRITICAL); CSV export of the 1-min history (all zones, with data origin). Series colours = dataviz reference palette, validated light + dark (`--series-1..4`). 5 new tests (17 total); checked in the browser on event 1189 | MAE is computed in the browser from the timeline endpoint, not server-side as doc 15 says (same arithmetic, no API change). "Alert timeline vs episode onset" not built (the operational evaluation, 7.4, measures lead time) | 8.4 Event & venue page |
 | 2026-11-22 | 8.2 | Alerts page: server-side filters (status, level, zone) + type filter, history table newest first with cursor "Load more", detail panel (trigger, horizon, predicted onset, timeline with event-time vs wall-clock labels) with acknowledge / resolve + optional note; shared `useAlertAction` hook (Live list refactored onto it). 5 new frontend tests (12 total); checked in the browser on event 1189 | Notes and the audit trail are written by the API but cannot be read back (no GET endpoint; adding one is a contract change - asked). No users column (D7). Toasts / CRITICAL sound not built | 8.3 History page |

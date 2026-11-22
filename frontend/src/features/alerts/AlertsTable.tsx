@@ -2,6 +2,7 @@
  * Alert history table (doc 15 Page 7): level (shape + word), zone, type, opened / onset in event
  * time, status and resolution. A row's zone button opens the detail panel.
  */
+import { EmptyState } from "../../components/States";
 import { LevelBadge } from "../../components/LevelBadge";
 import type { Level } from "../../components/levels";
 import { type Alert, hhmm, resolvedText, statusLabel, typeLabel } from "./alertFormat";
@@ -15,9 +16,9 @@ interface Props {
 export function AlertsTable({ alerts, selected, onSelect }: Props) {
   if (alerts.length === 0)
     return (
-      <p className="rounded-md border border-line bg-surface p-4 text-muted">
-        No alerts match these filters.
-      </p>
+      <EmptyState title="No alerts match these filters">
+        Alerts open when a zone reaches High now or in a forecast.
+      </EmptyState>
     );
   return (
     <div className="overflow-x-auto rounded-md border border-line bg-surface">

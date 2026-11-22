@@ -12,6 +12,8 @@ import {
   useVenue,
   useZones,
 } from "../../hooks/queries";
+import { forecastNotice, noticeText } from "../../components/notices";
+import { ApiHint, EmptyState, ErrorState, Loading, Notice } from "../../components/States";
 import { AlertList } from "./AlertList";
 import { VenueMap } from "./VenueMap";
 import { ZoneCard } from "./ZoneCard";
@@ -26,8 +28,13 @@ export function LivePage() {
   const venue = useVenue(event.data?.venue_id);
   const connections = useConnections(event.data?.venue_id);
 
-  if (current.isLoading) return <p className="text-muted">Loading the latest counts…</p>;
-  if (!current.data) return <p>Cannot load the latest counts. Check that the API is running.</p>;
+  if (current.isLoading) return <Loading what="the latest counts" />;
+  if (!current.data)
+    return (
+      <ErrorState>
+        <ApiHint />
+      </ErrorState>
+    );
 
   const forecastsBy = new Map(predictions.data?.zones.map((z) => [z.zone_id, z.forecasts]) ?? []);
   const thresholdsBy = new Map(zones.data?.zones.map((z) => [z.zone_id, z.thresholds]) ?? []);
@@ -37,26 +44,23 @@ export function LivePage() {
   const hasData = current.data.as_of !== null;
   const allFallback =
     (predictions.data?.zones.length ?? 0) > 0 &&
-    predictions.data?.zones.every((z) => z.forecasts.every((f) => f.is_fallback));
+    (predictions.data?.zones.every((z) => z.forecasts.every((f) => f.is_fallback)) ?? false);
+  const notice = forecastNotice({
+    eventStart: event.data?.start_time,
+    asOf: current.data.as_of,
+    issuedAt: predictions.data?.issued_at,
+    allFallback,
+  });
 
   return (
     <div className="space-y-3">
-      {current.isError && (
-        <p role="status" className="rounded-md border border-line bg-surface px-3 py-2">
-          Connection lost. Showing data from {current.data.as_of?.slice(11, 16) ?? "earlier"}.
-        </p>
-      )}
-      {allFallback && (
-        <p className="text-muted">
-          Forecasts use persistence (the latest count carried forward) until a trained model is
-          active.
-        </p>
+      {notice && (
+        <Notice tone={notice.kind === "stale" ? "warn" : "info"}>{noticeText(notice)}</Notice>
       )}
       {!hasData && (
-        <p>
-          No counts for this event yet. Replay a CROWDSIM run or start the CV pipeline to see zones
-          fill in.
-        </p>
+        <EmptyState title="No counts for this event yet">
+          Replay a CROWDSIM run or start the CV pipeline to see the zones fill in.
+        </EmptyState>
       )}
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">

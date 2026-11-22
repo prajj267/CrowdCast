@@ -3,6 +3,7 @@
  * in the browser), the alert history table newest first with "Load more", and a detail panel
  * with acknowledge / resolve. No users column: there is no authentication (D7).
  */
+import { ApiHint, ErrorState, Loading } from "../../components/States";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { type AlertAction, useAlertAction } from "../../hooks/mutations";
@@ -118,15 +119,12 @@ export function AlertsPage() {
       </form>
 
       {history.isError && !history.data && (
-        <p>Cannot load alerts. Check that the API is running.</p>
-      )}
-      {history.isError && history.data && (
-        <p role="status" className="rounded-md border border-line bg-surface px-3 py-2">
-          Connection lost. Showing the alerts loaded earlier.
-        </p>
+        <ErrorState>
+          <ApiHint />
+        </ErrorState>
       )}
       {history.isLoading ? (
-        <p className="text-muted">Loading alerts…</p>
+        <Loading what="alerts" />
       ) : (
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0 space-y-2">

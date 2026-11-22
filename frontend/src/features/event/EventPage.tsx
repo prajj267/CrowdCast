@@ -4,6 +4,7 @@
  * connections, and the venue-graph validation result. Changes are made in the YAML files and
  * loaded with tools.load_config (no polygon editor, no create/edit forms, no authentication).
  */
+import { ApiHint, ErrorState, Loading } from "../../components/States";
 import { useParams } from "react-router-dom";
 import {
   useConnections,
@@ -30,8 +31,13 @@ export function EventPage() {
   const schedule = useSchedule(eventId);
   const validation = useGraphValidation(venueId);
 
-  if (event.isLoading) return <p className="text-muted">Loading the event…</p>;
-  if (!event.data) return <p>Cannot load the event. Check that the API is running.</p>;
+  if (event.isLoading) return <Loading what="the event" />;
+  if (!event.data)
+    return (
+      <ErrorState>
+        <ApiHint />
+      </ErrorState>
+    );
   const ev = event.data;
   const zoneList = zones.data?.zones ?? [];
   const code = new Map(zoneList.map((z) => [z.zone_id, z.code]));

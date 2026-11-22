@@ -5,7 +5,16 @@
  * feature attributions are not stored.
  */
 import { useParams, useSearchParams } from "react-router-dom";
-import { useEvent, useHistory, usePredictions, useSchedule, useZones } from "../../hooks/queries";
+import {
+  useCurrent,
+  useEvent,
+  useHistory,
+  usePredictions,
+  useSchedule,
+  useZones,
+} from "../../hooks/queries";
+import { forecastNotice, noticeText } from "../../components/notices";
+import { ApiHint, EmptyState, ErrorState, Loading, Notice } from "../../components/States";
 import { ForecastChart } from "./ForecastChart";
 import { ForecastTable } from "./ForecastTable";
 import {
@@ -24,6 +33,7 @@ export function PredictionsPage() {
   const [search, setSearch] = useSearchParams();
   const event = useEvent(eventId);
   const predictions = usePredictions(eventId);
+  const current = useCurrent(eventId); // shared with the shell: no extra request
   const zones = useZones(event.data?.venue_id);
   const schedule = useSchedule(eventId);
 
@@ -44,21 +54,24 @@ export function PredictionsPage() {
     now === undefined ? undefined : new Date(now).toISOString(),
   );
 
-  if (predictions.isLoading) return <p className="text-muted">Loading forecasts…</p>;
+  if (predictions.isLoading) return <Loading what="forecasts" />;
   if (predictions.isError && !latest)
-    return <p>Cannot load forecasts. Check that the API is running.</p>;
+    return (
+      <ErrorState>
+        <ApiHint />
+      </ErrorState>
+    );
   if (!latest || latest.issued_at === null || byRisk.length === 0)
     return (
-      <section className="space-y-2">
+      <div className="space-y-3">
         <h1 className="text-xl font-semibold">Predictions</h1>
-        <p>
-          No forecasts for this event yet. Run prediction cycles with{" "}
+        <EmptyState title="No forecasts for this event yet">
+          Run prediction cycles with{" "}
           <code>uv run python -m tools.run_predictions --event-id {eventId}</code> in{" "}
-          <code>backend/</code>.
-        </p>
-      </section>
+          <code>backend/</code> (add <code>--follow</code> while a replay is posting).
+        </EmptyState>
+      </div>
     );
-
   const select = (zoneId: number) => {
     const z = byRisk.find((x) => x.zone_id === zoneId);
     if (z) setSearch({ zone: z.code }, { replace: true });
@@ -71,6 +84,12 @@ export function PredictionsPage() {
         )
       : [];
   const allFallback = latest.zones.every((z) => z.forecasts.every((f) => f.is_fallback));
+  const notice = forecastNotice({
+    eventStart: event.data?.start_time,
+    asOf: current.data?.as_of,
+    issuedAt: latest.issued_at,
+    allFallback,
+  });
 
   return (
     <div className="space-y-4">
@@ -79,13 +98,10 @@ export function PredictionsPage() {
         <span className="text-muted">
           Issued {hhmm(now as number)} UTC (event time) ·{" "}
           {latest.model ? `model ${latest.model.name} ${latest.model.version}` : "no trained model"}
-          {allFallback && " · persistence fallback for every zone"}
         </span>
       </header>
-      {predictions.isError && (
-        <p role="status" className="rounded-md border border-line bg-surface px-3 py-2">
-          Connection lost. Showing the forecasts issued at {hhmm(now as number)}.
-        </p>
+      {notice && (
+        <Notice tone={notice.kind === "stale" ? "warn" : "info"}>{noticeText(notice)}</Notice>
       )}
 
       <section

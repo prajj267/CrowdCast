@@ -3,6 +3,7 @@
  * schedule bands, predicted vs actual for a chosen zone and horizon with the period MAE, peaks
  * per zone, and a CSV export of the 1-min history. Everything is event time.
  */
+import { ApiHint, EmptyState, ErrorState, Loading } from "../../components/States";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useEvent, useHistory, useSchedule, useZoneTimeline, useZones } from "../../hooks/queries";
@@ -63,8 +64,13 @@ export function HistoryPage() {
   const timeline = useZoneTimeline(eventId, pvaZoneId, horizon);
   const pva = predVsActual(timeline.data?.points ?? []);
 
-  if (event.isLoading || zonesQ.isLoading) return <p className="text-muted">Loading…</p>;
-  if (!event.data) return <p>Cannot load the event. Check that the API is running.</p>;
+  if (event.isLoading || zonesQ.isLoading) return <Loading what="the event" />;
+  if (!event.data)
+    return (
+      <ErrorState>
+        <ApiHint />
+      </ErrorState>
+    );
 
   const from = Date.parse(event.data.start_time);
   const to = Date.parse(event.data.end_time);
@@ -98,9 +104,15 @@ export function HistoryPage() {
         </button>
       </header>
 
-      {history.isError && <p>Cannot load the history. Check that the API is running.</p>}
+      {history.isError && !history.data && (
+        <ErrorState>
+          <ApiHint />
+        </ErrorState>
+      )}
       {!history.isLoading && !hasData && (
-        <p>No observations for this event yet. Replay a CROWDSIM run or run the CV pipeline.</p>
+        <EmptyState title="No observations for this event yet">
+          Replay a CROWDSIM run or run the CV pipeline.
+        </EmptyState>
       )}
 
       {hasData && (

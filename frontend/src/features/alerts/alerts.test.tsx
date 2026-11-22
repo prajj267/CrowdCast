@@ -56,7 +56,7 @@ describe("AlertsTable", () => {
 
   it("says when nothing matches", () => {
     render(<AlertsTable alerts={[]} selected={null} onSelect={() => {}} />);
-    expect(screen.getByText("No alerts match these filters.")).toBeTruthy();
+    expect(screen.getByText("No alerts match these filters")).toBeTruthy();
   });
 });
 

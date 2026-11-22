@@ -27,7 +27,13 @@ export function Shell() {
   const events = useEvents();
   const event = useEvent(id);
   const current = useCurrent(id);
-  const origin = current.data?.zones[0]?.data_origin;
+  // origin from the event itself, so it shows before any counts arrive (doc 15 §4)
+  const origin = event.data
+    ? event.data.is_synthetic
+      ? "SYNTHETIC"
+      : "REAL"
+    : current.data?.zones[0]?.data_origin;
+  const lostAt = current.isError && current.dataUpdatedAt ? current.dataUpdatedAt : null;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -67,15 +73,27 @@ export function Shell() {
 
         {origin && (
           <span className="text-muted">
-            Data: <span className="text-ink">{origin.toLowerCase()}</span>
+            Data: <span className="font-medium text-ink">{origin}</span>
           </span>
         )}
       </header>
 
+      {current.isError && (
+        <div role="status" className="border-b border-line bg-surface px-4 py-1.5 hatch-unknown">
+          <strong className="font-semibold">Connection lost.</strong>{" "}
+          {current.data?.as_of
+            ? `Showing data from ${eventClock(current.data.as_of)} event time`
+            : "No data loaded yet"}
+          {lostAt !== null &&
+            `, last contact ${new Date(lostAt).toLocaleTimeString("en-GB")} on this computer`}
+          . Retrying every 5 s.
+        </div>
+      )}
+
       {event.data?.is_synthetic && (
         <div role="note" className="synthetic-strip px-4 py-1.5 text-ink">
-          <strong className="font-semibold">Synthetic data.</strong> A simulated crowd from CROWDSIM
-          with placeholder parameters, not real people.
+          <strong className="font-semibold">SYNTHETIC DATA: not a real crowd.</strong> A simulated
+          crowd from CROWDSIM with placeholder parameters.
         </div>
       )}
 
