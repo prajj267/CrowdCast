@@ -59,6 +59,43 @@ export function useAlerts(eventId: number) {
   });
 }
 
+/** Observed occupancy and flows of some zones between two event times (1-min buckets). */
+export function useHistory(
+  eventId: number,
+  zoneIds: number[],
+  from: string | undefined,
+  to: string | undefined,
+  resolution: "1m" | "5m" = "1m",
+) {
+  return useQuery({
+    queryKey: ["history", eventId, zoneIds, from, to, resolution],
+    enabled: zoneIds.length > 0 && from !== undefined && to !== undefined,
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/crowd/history/{event_id}", {
+          params: {
+            path: { event_id: eventId },
+            query: { zone_id: zoneIds, from, to, resolution },
+          },
+        }),
+      ),
+    placeholderData: (previous) => previous, // keep the chart while the window slides
+  });
+}
+
+export function useSchedule(eventId: number) {
+  return useQuery({
+    queryKey: ["schedule", eventId],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/events/{event_id}/schedule", {
+          params: { path: { event_id: eventId } },
+        }),
+      ),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useZones(venueId: number | undefined) {
   return useQuery({
     queryKey: ["zones", venueId],

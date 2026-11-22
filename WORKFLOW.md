@@ -22,11 +22,11 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Done |
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Done (MS3) |
 | 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | In progress |
-| 8 | Dashboard completion (React) | 8–9 | 6 | — | Not started |
+| 8 | Dashboard completion (React) | 8–9 | 6 | — | In progress |
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | Not started |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 7 (Phase 0 still open: doc updates 0.3.x)
+**Current focus:** Phase 7 runs (machine) + Phase 8 dashboard in parallel (Phase 0 still open: doc updates 0.3.x)
 **Next task:** 7.3.2 SYN-noisy tuning run (running), then tuned validation ablations clean + noisy with `--params` (closes 7.3.1–7.3.3) (Phase 7)
 
 ---
@@ -288,7 +288,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 
 ## Phase 8 — Dashboard completion (React)
 
-- [ ] 8.1 Prediction view: Recharts forecast chart with the P10–P90 band and a horizon selector ([15 Page 5](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md))
+- [x] 8.1 Prediction view: Recharts forecast chart with the P10–P90 band and a horizon selector ([15 Page 5](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md))
 - [ ] 8.2 Alerts view: list, acknowledge and resolve ([15 Page 7](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md))
 - [ ] 8.3 History view with CSV export ([15 Page 6](DOCUMENTATION/15_FRONTEND_SPECIFICATION.md))
 - [ ] 8.4 Event and venue view (read-only, YAML import)
@@ -339,6 +339,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-22 | 8.1 | Predictions page: zone selector (in the URL), `ForecastChart` (Recharts: observed last 60 min, P50 fan with P10–P90 band to +30 min, threshold lines, now marker, schedule bands), zone × horizon table (P50 + interval, level shape + word, risk, fallback flag, model version); page lazy-loaded (main bundle 664 → 225 kB). Added Recharts (D1) and Vitest + Testing Library (doc 17 §2.7); `npm run test` in `scripts/check.ps1`. 7 frontend tests; full check 311 backend (DB tests ran again, Docker up) + 7 frontend passed; checked in the browser on event 1189 | No "Why?" panel (feature attributions not stored; doc 15 makes it optional). `npm audit`: 2 moderate advisories in react-router 6 (open redirect via backslash in links; SSR hydration) — not fixed, needs the react-router 7 major upgrade; low impact for a local dashboard without login | 8.2 Alerts page |
 | 2026-11-22 | 7.4.1, 7.4.2 (code) | `tools/training/operational.py`: P/R/F1 for ≥ HIGH per horizon and model (bootstrap CI over events), 4 × 4 confusion, PR curve on P50 / P90; offline alert replay through `risk.alerts.decide` → lead time (median, IQR), missed-episode and false-alarm rates, false alarms per hour, source mix. Ablation runner now saves `predictions.parquet`. 7 tests; smoke check on validation baselines only (not logged) | Offline replay instead of DB replay (Deviation log); doc 16 §5 implementation note. Existing validation runs have no predictions file: the tuned re-runs will | Noisy tuning finishes → tuned validation ablations clean + noisy, then stats + operational on them |
 | 2026-11-22 | 7.3.2 (run), 7.3.5 (code) | SYN-clean tuning finished (15 cells, 300 trials, 7.8 h; logged as tuning-20261121T172441Z); tuned parameters committed in `configs/tuning/`; SYN-noisy tuning started. Statistics tool `tools/training/stats.py`: one-sided Wilcoxon per comparison and horizon, Holm across horizons, median relative MAE reduction with 10,000-resample bootstrap CI, ≥ 5 % practical flag, H6 ranking, H7 coverage CI; ablation now records peak and post-release stratum MAE per event (11 tests; scipy made an explicit dependency, already installed) | Best max_depth at the search-space upper bound (8) in 12/15 cells, kept as documented and noted in the log; CV scores are training-event scores, not results. 7.3.5 ticks when applied to the test-split runs | Tuned validation ablations (clean, noisy) after noisy tuning; 7.4 classification + lead-time code |
 | 2026-11-21 | 7.3.1 runs, 7.3.2, 7.3.3 (code) | Validation ablations SYN-clean and SYN-noisy logged; Optuna tuning tool (20 trials × 3 folds, deviation logged) — SYN-clean tuning run started; split-conformal CQR (`forecasting/conformal.py`): offsets per horizon in the model manifest, applied by the online cycle, computed by `train.py`; ablation reports raw and conformal coverage/width (validation: 2-fold cross-calibration by event); doc 10 §11 implementation notes | 7.3.3 is ticked only after coverage is measured with tuned models. Postgres tests skipped (Docker off; no DB code changed) | finish tuning (clean, then noisy) → tuned validation ablation with conformal coverage |

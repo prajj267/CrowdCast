@@ -112,7 +112,7 @@ Python lives in `backend/` (uv project, uv-managed CPython 3.12; `python-prefere
 | Run CROWDSIM for one event (SYNTHETIC) | `uv run python -m tools.crowdsim.run --event ../configs/events/v1_spring_fest_day1.yaml [--regime b]` → `data/synthetic/crowdsim/` |
 | CROWDSIM figure / replay | `uv run python -m tools.crowdsim.plot <run dir>`; `uv run python -m tools.crowdsim.replay <run dir> --event-id N --speedup 60` (API must be running; `--speedup 0` = as fast as possible) |
 | Prediction cycles in event time | `uv run python -m tools.run_predictions --event-id N` (back-fill) or `... --follow` (while a replay posts) |
-| Frontend (from `frontend/`) | `npm install` once; `npm run dev` (http://127.0.0.1:5173, proxies `/api` to :8000); `npm run gen:api` after any API change; `npm run lint` / `npm run build` |
+| Frontend (from `frontend/`) | `npm install` once; `npm run dev` (http://127.0.0.1:5173, proxies `/api` to :8000); `npm run gen:api` after any API change; `npm run lint` / `npm run build` / `npm run test` (Vitest) |
 | Generate the 180-event SYNTHETIC dataset | `uv run python -m tools.crowdsim.generate` (~6 min, `data/synthetic/`); splits are frozen in `configs/splits.json` — never re-draw |
 | Train a model (clean tree only) | `uv run python -u -m tools.training.train --feature-set A4` (~20 min) → `models/xgb/…` + `model_versions` row (inactive) |
 | Tune hyper-parameters (training events only) | `uv run python -u -m tools.training.tune --data clean\|noisy` (20 trials × 3 folds per cell, hours) → `runs/tuning/<run>/best_params.json`; use with `tools.training.ablation --params <file>` |

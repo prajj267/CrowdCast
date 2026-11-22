@@ -1,5 +1,5 @@
 # Run every check: backend (format, lint, types, tests) and frontend (format, lint, type-checked
-# build). Usage from the repo root:
+# build, Vitest component tests). Usage from the repo root:
 #   powershell -ExecutionPolicy Bypass -File scripts\check.ps1
 # Exits non-zero on the first failure. Frontend checks are skipped if `npm install` was not run.
 $ErrorActionPreference = "Stop"
@@ -20,6 +20,7 @@ if (Test-Path (Join-Path $frontend "node_modules")) {
         npm run --silent format:check;  if ($LASTEXITCODE) { exit $LASTEXITCODE }
         npm run --silent lint;          if ($LASTEXITCODE) { exit $LASTEXITCODE }
         npm run --silent build;         if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        npm run --silent test;          if ($LASTEXITCODE) { exit $LASTEXITCODE }
     }
     finally {
         Pop-Location
