@@ -121,6 +121,7 @@ Python lives in `backend/` (uv project, uv-managed CPython 3.12; `python-prefere
 | Classification + operational evaluation on an ablation run | `uv run python -m tools.training.operational ../runs/ablation/<run>` → `classification.csv`, `confusion.csv`, `pr_curve.csv`, `operational.csv` (+ per-episode / per-alert / per-event files; replays alerts through `risk.alerts.decide`) |
 | Activate a model | `POST /api/models/{id}/activate` (API running); the cycle then uses it, with B0 fallback |
 | Run a camera on a recorded clip (REAL) | `uv run python -u -m tools.vision.run_camera --camera ../configs/cameras/shibuya_cam1.yaml --event-id N` (event LIVE, not synthetic; `--dry-run` posts nothing) |
+| End-to-end smoke test (fresh throwaway DB) | `uv run python -m tools.smoke_e2e [--keep]` (backend/, Postgres up; ~2 min): migrations → load config → CROWDSIM → replay via the API (port 8001) → predictions → alerts → checks; drops `crowdcast_smoke` |
 | Privacy check (whole git history) | `bash scripts/privacy_check.sh` (repo root, Git Bash): no media / datasets / weights / e-mails ever committed, data folders ignored |
 | Tests needing model files | `uv run pytest -m model` (skipped if `models/yolox/` is empty) |
 
