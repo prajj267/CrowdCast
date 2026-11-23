@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
-| Status | Pre-registered plan (fixed before results are seen; deviations must be logged) |
+| Version | 0.1.1 |
+| Status | Pre-registered plan (fixed before results are seen; deviations must be logged). §1–§11 are unchanged; **§12 lists the deviations of the solo execution** |
 
 ---
 
@@ -102,3 +102,19 @@ Primary: per-event MAE at each horizon. Secondary: RMSE, normalised MAE, peak-pe
 ## 11. Compute budget
 
 Tree models: minutes per config on a laptop CPU. LSTM: < 1 h per config on a 6 GB GPU (estimate). Full ablation (≈ 5 configs × 3 models × 3 horizons × seeds) is expected to fit in 1–2 days of machine time; estimates are verified in week 6.
+
+## 12. Deviations in the solo execution (added 2026-11-23, 9.4 audit F-RES)
+
+The plan above is left as pre-registered. The project is executed by one developer on a CPU-only laptop with public datasets only (WORKFLOW decisions D2, D6). Each change below is recorded, with its reason, in the WORKFLOW Deviation log; this section only points to them so that a reader of this plan sees them.
+
+| Section | Pre-registered | Executed | Logged |
+|---|---|---|---|
+| §2 Datasets, §3 Real test | REAL-staged and REAL-event datasets as a real-data test | **Dropped** (D6: no own recordings). There is no REAL forecasting dataset; all forecasting results are SYNTHETIC evidence. REAL public data (Mall, ShanghaiTech B, MOT20) is used only for CV evaluation and to calibrate the SYN-noisy noise model | 2026-11-20 |
+| §5 step 3 | Optuna 50 trials, GroupKFold 5 folds | 20 trials, 3 folds per (config, horizon), same budget for every config; median model tuned, quantile models reuse its parameters | 2026-11-21 |
+| §5 step 7 | Replay test events through the running M6 + M7 | Offline replay of the saved forecasts through the real M7 state machine (`risk.alerts.decide`); the database and API are bypassed | 2026-11-22 |
+| §5 step 8, §7 last bullet, §8 last bullet | Apply selected models to REAL data; Diebold–Mariano per real session; density bands of REAL CV input | Not applicable (no REAL forecasting data). Density bands are reported for the CV evaluation only, by true count where no calibrated areas exist | 2026-11-20, 2026-11-21 |
+| §4 Models | XGBoost, RF, LSTM; A5 GNN | XGBoost quantile models and baselines B0–B3; RF optional; LSTM and A5 are gated extensions, not started | WORKFLOW scope table, Extensions |
+| §9 Threats | "Real-data check" mitigates the simulator-encodes-hypothesis threat | Not available. Remaining mitigations: published-vs-actual schedule perturbation, separate SYN-clean / SYN-noisy reporting, and stating the limitation in the report. The 2× noise sensitivity run has **not yet been run** | — |
+| §11 Compute | LSTM on a 6 GB GPU | No GPU; LSTM not started | D6/AS4 |
+
+Splits (§3), the statistical analysis (§7, except the REAL bullet), the strata (§8) and the metrics (§6) are executed as pre-registered; `configs/splits.json` (seed 2027) was frozen before the first training run.

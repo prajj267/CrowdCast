@@ -24,3 +24,26 @@ Scales: Likelihood (L) and Impact (I) 1 = low … 5 = high; Score = L × I. Revi
 ## Top risks (score ≥ 12)
 
 R1, R2, R3, R4, R5, R8 — reviewed at every weekly meeting.
+
+## Solo status (2026-11-23, updated 2026-11-24; WORKFLOW 0.3.3)
+
+One developer owns every risk; the Owner column above is the team plan. Status as of this date:
+
+| ID | Status | Note |
+|---|---|---|
+| R1 | **Occurred** | Public-data CV evaluation shows systematic undercounting that grows with density (`EXPERIMENT_LOG.md`, Phase 7.1). Claims are limited to the tested ranges; the density-map extension is gated and not started |
+| R2 | **Occurred by decision** (D6) | No own recordings: no REAL forecasting dataset. Forecasting conclusions are synthetic evidence; REAL data is used for CV evaluation only |
+| R3 | Accepted limitation | Noise model calibrated on public-data CV errors; SYN-clean and SYN-noisy reported separately; stated in the report |
+| R4 | Avoided (D6) | No recording, so no permission needed |
+| R5 | Did not occur | MS2 and MS3 met (WORKFLOW status table) |
+| R6 | **Occurred** | No NVIDIA GPU. Contingency applied: offline CPU processing of recorded clips; the demo replays stored observations |
+| R7 | Mitigated | Event-level frozen splits (seed 2027), leakage tests, one shared feature builder, tuning inside training events only |
+| R8 | Controlled | Extensions are gated in `WORKFLOW.md`; none started |
+| R9 | **Changed**: "single developer unavailable" | No team to cover absence. Mitigation: no hard deadline (D5); the WORKFLOW session log and `CLAUDE.md` let work resume after a break |
+| R10 | Avoided (D2) | YOLOX (Apache-2.0) chosen from the start; no Ultralytics |
+| R11 | Open | Licence terms of Mall, ShanghaiTech B and MOT20 still to be read at the source (WORKFLOW 0.2.2) |
+| R12 | Largely not applicable | No own multi-camera recordings; event time comes from the configured start |
+| R13 | **Measured** (WORKFLOW 7.4.2) | False alarms and lead time per model, split and dataset are in `EXPERIMENT_LOG.md` and [16 §9](../DOCUMENTATION/16_MODEL_EVALUATION.md). On some test configurations the learned model raises more false alarms per hour than B0; the report states this |
+| R14 | Mitigated | No own footage; public data in git-ignored folders; `scripts/privacy_check.sh` over the whole history, also in CI |
+| R15 | Avoided | YAML import from the start; no polygon editor |
+| R16 | **Occurred** | Found and fixed in the 9.4 audit ([AUDIT_9_4.md](../DOCUMENTATION/AUDIT_9_4.md)); CI now fails when the generated API client drifts from the backend |

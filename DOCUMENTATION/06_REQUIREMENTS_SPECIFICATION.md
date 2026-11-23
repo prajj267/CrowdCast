@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
-| Status | Proposed baseline for the 8-week prototype |
+| Version | 0.2 |
+| Status | Baseline for the 8-week team prototype; **§5 records the solo implementation and wins where they differ** (WORKFLOW 9.4, F-0.3) |
 | Priority scheme | **M** = Must (core), **S** = Should, **C** = Could (extension), **W** = Won't (this phase) |
 
 ---
@@ -186,3 +186,39 @@ Full permission matrix: [19 §3](19_SECURITY_AND_PRIVACY.md).
 | O5 | FR-CNG-* | M7 | TC-CNG-* |
 | O6 | FR-ALR-* | M7 | TC-ALR-*, TC-E2E-03 |
 | O7 | FR-DSH-* | M9 | TC-FE-*, TC-E2E-* |
+
+## 5. Solo implementation (v0.2, 9.4 audit)
+
+Built by one developer on a CPU-only laptop (decisions D1–D8 in `WORKFLOW.md`). Requirements not listed here are implemented as specified; test coverage per test case is in [17 §5](17_TESTING_STRATEGY.md). Measured values are not stated here; they are in `EXPERIMENT_LOG.md` and [16](16_MODEL_EVALUATION.md).
+
+| Requirement | Status in the solo build | Reference |
+|---|---|---|
+| §1.3 roles, FR-AUTH-01…04, FR-EVT-05, FR-DSH-01, NFR-SEC-01 | **Won't** (D7: no authentication, users or roles; single local user). Stated as a limitation | [19 §9](19_SECURITY_AND_PRIVACY.md) |
+| FR-EVT-01, FR-EVT-03, FR-VEN-01, FR-ZON-01…04, FR-ZON-06 | Venues, zones, connections, thresholds, events and schedules come from **YAML** loaded with `tools.load_config`; no floor-plan upload | [12 §6](12_DATASET_AND_DATA_COLLECTION.md), [14 §6](14_API_SPECIFICATION.md) |
+| FR-EVT-04 | Schedule edits during a live event: no edit endpoint; the YAML is re-loaded | [14 §6](14_API_SPECIFICATION.md) |
+| FR-VID-01, FR-VID-03 | Cameras, zone regions and counting lines are defined in a **camera YAML** read by `tools.vision.run_camera`; the camera tables are not written | [12 §6.3](12_DATASET_AND_DATA_COLLECTION.md), [13 §3.10](13_DATABASE_DESIGN.md) |
+| FR-VID-02, NFR-PERF-03 | Recorded clips are processed **offline on the CPU** (YOLOX via ONNX Runtime, tiled); event time comes from the configured start. The GPU throughput target does not apply; CPU speed is in the logged benchmark runs | [09 §12](09_COMPUTER_VISION_METHODOLOGY.md) |
+| FR-VID-04, FR-CV-06 | Extensions (live RTSP, density-map counter); gated, not started | WORKFLOW Phase X |
+| FR-VID-05 | Not verified (one camera per run in every logged run) | — |
+| FR-OBS-02 | `mean_speed` is always null (speed estimation not built) | [09 §12](09_COMPUTER_VISION_METHODOLOGY.md) |
+| FR-OBS-04 | A minute without frames produces no row rather than a `MISSING` row | [08](08_MODULE_DESIGN.md) M3 |
+| FR-OBS-05 | **Not built**: no MANUAL data exists (D6) | WORKFLOW Deviation log |
+| FR-FC-01 | No wall-clock scheduler: the cycle is driven in **event time** by `tools.run_predictions` (back-fill or `--follow`) | [10 §12](10_ML_FORECASTING_METHODOLOGY.md) |
+| FR-ALR-02 | Transitions are logged with time and optional note, without a user (D7) | [15 §7](15_FRONTEND_SPECIFICATION.md) |
+| FR-ALR-06 | Not built | [15 §7](15_FRONTEND_SPECIFICATION.md) |
+| FR-DSH-02, FR-DSH-03 | No event editor or polygon editor; the Event & venue page shows the loaded configuration (D1) | [15 §7](15_FRONTEND_SPECIFICATION.md) |
+| NFR-MOD-01 | Enforced by an AST test (`tests/test_module_boundaries.py`) instead of import-linter | [07 §9](07_SYSTEM_ARCHITECTURE.md) |
+| NFR-PERF-01 | Timed by `tools.bench_cycle` (logged runs) | `EXPERIMENT_LOG.md` (9.2) |
+| NFR-PERF-02, NFR-PERF-04, FR-ALR-05 | No Locust or browser E2E latency test; replaced by `tools.smoke_e2e` (function, not latency) | [17 §5](17_TESTING_STRATEGY.md) |
+| NFR-PRV-03 | Not applicable: no own recordings (D6); no deletion job | [19 §9](19_SECURITY_AND_PRIVACY.md) |
+| NFR-SEC-02 | Local use only (127.0.0.1); no reverse proxy | [18](18_DEPLOYMENT_PLAN.md) |
+| NFR-USE-01 | The 5-participant walkthrough is out of scope; at most informal | [02 §7](02_OBJECTIVES_AND_SCOPE.md) |
+| NFR-PORT-01 | Only PostgreSQL runs in Docker Compose; Python and Node run natively. Tested on Windows 11 only | [18](18_DEPLOYMENT_PLAN.md) |
+| §3 reference machine | Ryzen 7 8840HS, 31 GB RAM, no NVIDIA GPU | `WORKFLOW.md` |
+
+## 6. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 0.2 | 2026-11-24 | §5 solo implementation added (9.4 audit, F-0.3) |
+| 0.1 | — | Team-plan baseline |

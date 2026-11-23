@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 — design baseline (MS0) |
-| Date | 15 Nov 2026 |
-| Status | **Proposed design. No software has been implemented and no experimental results exist.** |
+| Version | 0.2 |
+| Date | 15 Nov 2026 (v0.1 design baseline); 23 Nov 2026 (v0.2) |
+| Status | Design baseline, **now implemented in a solo, CPU-only scope** tracked in [`WORKFLOW.md`](../WORKFLOW.md). Documents amended in the 9.4 audit carry a "Solo implementation" section that wins over their design text ([AUDIT_9_4.md](AUDIT_9_4.md)). Results exist only in [`EXPERIMENT_LOG.md`](../EXPERIMENT_LOG.md); none are stated in this index |
 
 ---
 
@@ -107,10 +107,10 @@ An **event-aware, graph-feature forecasting pipeline for venue-zone congestion a
 
 ## 7. Outstanding questions
 
-### 7.1 Research questions (open until experiments run)
+### 7.1 Research questions (tested on SYNTHETIC data 2026-11-23; results in [16 §9](16_MODEL_EVALUATION.md); the REAL-data parts remain open, D6)
 RQ1–RQ6 and RQ-OP in [research_questions.md](../RESEARCH/research_questions.md). In particular: does schedule information help on *real* data (RQ1, RQ5)? Is 30 minutes a usable horizon (RQ3)? Do neighbour features help at ≤ 15 zones (RQ4)?
 
-### 7.2 Decisions required from the team
+### 7.2 Decisions required from the team (answered 2026-11-20, WORKFLOW decision log D1–D8)
 1. **Team size and roles:** 3 or 4 members? Who takes which role?
 2. **Recording:** which real setting — staged volunteer scenario, a campus event, or both? Who submits the ethics application?
 3. **Hardware:** which machine has an NVIDIA GPU for CV and the demo?
@@ -119,6 +119,20 @@ RQ1–RQ6 and RQ-OP in [research_questions.md](../RESEARCH/research_questions.md
 6. **Venue for the demo:** which real or fictional venue layout and capacities? Who acts as "organiser" to supply capacities?
 7. **Course deadlines:** exact start date and whether weeks 9–10 are available for extensions.
 8. **Language/framework comfort:** is the frontend team comfortable with React + TypeScript, or should scope shift to a simpler UI?
+
+**Answers** (solo project; full text in the WORKFLOW decision log):
+
+| Question | Answer |
+|---|---|
+| 1. Team size and roles | One developer holds every role ([team_responsibilities.md](../PROJECT_MANAGEMENT/team_responsibilities.md)) |
+| 2. Recording | No own recordings (D6): public datasets only (Mall, ShanghaiTech Part B, MOT20, plus a public clip for the CV demo); no ethics application needed |
+| 3. Hardware | No NVIDIA GPU: CV runs offline on the CPU (Ryzen 7 8840HS); the demo replays stored observations |
+| 4. Licence | YOLOX (Apache-2.0) via ONNX Runtime (D2); Ultralytics not used |
+| 5. Repository visibility | Public GitHub repository (D3); no datasets, footage or weights committed |
+| 6. Demo venue | Split demo (D4): forecasting and alerts on the synthetic V1 festival venue; CV on a public clip with an illustrative venue |
+| 7. Deadlines | No hard deadline (D5); started 2026-11-20, about a 10-week self-paced target |
+| 8. Frontend framework | React 18 + TypeScript + Vite (D1), reduced to five pages |
+| (added) Authentication | None (D7), stated as a limitation |
 
 ## 8. Consistency audit (Phase 4)
 

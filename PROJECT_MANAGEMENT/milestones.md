@@ -2,6 +2,8 @@
 
 Milestone IDs use `MS` to avoid confusion with module IDs (M1–M9). Weeks are relative to project start (see [21_DEVELOPMENT_ROADMAP.md](../DOCUMENTATION/21_DEVELOPMENT_ROADMAP.md)).
 
+> **Solo plan (WORKFLOW 0.3.2).** This table is the original team plan. Milestone status, dates and the solo deliverables are tracked in [`WORKFLOW.md`](../WORKFLOW.md) (status table and phases). Differences in short: no auth skeleton or login (D7), no ethics application or staged recording (D6, public datasets only), Postgres-only Docker Compose with native processes, CPU-only offline CV, no REAL forecasting dataset (ablations on SYN-clean and SYN-noisy only), and the E2E/performance tests replaced by `tools.smoke_e2e` and `tools.bench_cycle`. As of 2026-11-24: MS1, MS2, MS3 and MS4 met (MS4: one-shot test-split runs logged 2026-11-23, results generated into [16 §9](../DOCUMENTATION/16_MODEL_EVALUATION.md)); MS5 in progress (WORKFLOW Phase 9); MS0 open (supervisor sign-off, WORKFLOW 0.1–0.2).
+
 | ID | Week (end) | Milestone | Deliverables | Acceptance (demonstrable) |
 |---|---|---|---|---|
 | MS0 | 0 | Documentation baseline | This documentation package | Team review sign-off; open questions ([INDEX §7](../DOCUMENTATION/INDEX.md#7-outstanding-questions)) answered |

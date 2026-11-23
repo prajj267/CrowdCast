@@ -2,9 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 |
-| Duration | 8 weeks (weeks 1–8) + optional buffer |
+| Version | 0.2 |
+| Status | **Superseded for planning by [`WORKFLOW.md`](../WORKFLOW.md)** (solo scope; WORKFLOW 0.3.2). Kept as the original team plan |
+| Duration | 8 weeks (weeks 1–8) + optional buffer (team plan) |
 | Team | 4 members (roles in [team_responsibilities.md](../PROJECT_MANAGEMENT/team_responsibilities.md)); 3-member variant noted |
+
+> **Solo plan.** The project is built by one developer on a CPU-only laptop, self-paced with no hard deadline (D5, started 2026-11-20). Phases, tasks, progress, decisions D1–D8 and every deviation from this roadmap are tracked in [`WORKFLOW.md`](../WORKFLOW.md); the milestone IDs MS0–MS6 are kept there. The solo scope is close to the §5 three-member variant (five pages, YAML instead of a polygon editor, LSTM as an extension), and additionally has no authentication (D7), CPU-only offline CV (YOLOX, D2) and public datasets only (D6).
 
 Milestones are detailed in [milestones.md](../PROJECT_MANAGEMENT/milestones.md), tasks in [task_breakdown.md](../PROJECT_MANAGEMENT/task_breakdown.md).
 
@@ -82,3 +85,10 @@ Buffer: if the course allows, weeks 9–10 for A5 (GNN) or density-map extension
 ## 5. 3-member team variant
 
 Merge the frontend and integration roles; reduce frontend scope to Live monitoring, Prediction, Alerts and a minimal Event/Venue form (polygon editor replaced by YAML import); drop LSTM unless ahead of schedule.
+
+## 6. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 0.2 | 2026-11-23 | Marked as superseded by `WORKFLOW.md` for planning (WORKFLOW 0.3.2) |
+| 0.1 | — | Team plan |

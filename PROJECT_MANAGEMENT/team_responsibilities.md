@@ -1,5 +1,7 @@
 # Team Responsibilities
 
+> **Solo project (WORKFLOW 0.3.3).** CROWDCAST is built by **one developer**, who holds every role below. The role table is kept as the original team plan and as a map of which modules belong together. Review by a second team member, weekly meetings and pairing do not apply; the solo definition of done is in `CLAUDE.md §8`, and progress is tracked in [`WORKFLOW.md`](../WORKFLOW.md). Effort estimates in person-days are team-plan figures, not solo measurements.
+
 ## Roles (4-member team)
 
 | Role | Owns modules | Primary responsibilities | Secondary | Approx. load (pd, from task breakdown) |

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 0.1 (design baseline) |
-| Status | Proposed |
+| Version | 0.2 |
+| Status | Design baseline (§1–§6) with the **solo scope in §7, which wins where they differ** |
 
 ---
 
@@ -82,4 +82,48 @@ Each objective is measurable and traced to requirements ([06](06_REQUIREMENTS_SP
 1. Source code (backend, CV worker, simulator, ML pipeline, frontend) — *later phase*.
 2. This documentation package.
 3. A recorded demo using replayed footage and/or synthetic streams.
-4. An evaluation report with real numbers produced by the pipeline (no results are claimed in this document set).
+4. An evaluation report with real numbers produced by the pipeline (no results are claimed here; they are generated into [16 §9](16_MODEL_EVALUATION.md) from logged runs).
+
+## 7. Solo scope (v0.2, WORKFLOW 0.3.1)
+
+The project is built by **one developer on one CPU-only laptop** with no hard deadline (decisions D1–D8 in `WORKFLOW.md`). This section records how the objectives, scope, assumptions and constraints above changed. Results are not stated here; they are in `EXPERIMENT_LOG.md` and [16](16_MODEL_EVALUATION.md).
+
+### 7.1 Objectives
+
+| ID | Change |
+|---|---|
+| O1, O2 | Measured on **public datasets** (Mall, ShanghaiTech Part B, MOT20), not on own annotated footage (D6: no own recordings). Density bands by true count where no calibrated areas exist |
+| O3 | Unchanged. A minute without frames produces no row rather than a MISSING row ([08](08_MODULE_DESIGN.md) M3) |
+| O4–O6 | Unchanged, but evaluated on **SYNTHETIC** events (CROWDSIM, clean and noisy): there is no REAL forecasting dataset, so forecasting conclusions are synthetic evidence |
+| O7 | The 5-person usability walkthrough is **out of scope**; at most an informal walkthrough, reported as such |
+| O8 | Ablations A1–A4 plus A4 without neighbour features (A4_NONBR). A5 (GNN) is an extension, not core |
+
+### 7.2 Scope
+
+| Area | Change from §3 |
+|---|---|
+| Configuration | Venues, events, schedules and cameras come from **YAML files** ([12 §6](12_DATASET_AND_DATA_COLLECTION.md)); no configuration UI, no polygon editor. Camera DB tables exist but are unused ([13 §3.10](13_DATABASE_DESIGN.md)) |
+| Vision | YOLOX (Apache-2.0, D2) via ONNX Runtime on the **CPU, offline**, with tiling; in-house ByteTrack. No Ultralytics/YOLO11 |
+| Data | CSV/annotation import is **not built** (D6; WORKFLOW Deviation log) |
+| Forecasting | Baselines B0–B3 and XGBoost quantile models with split-conformal intervals. **LSTM moved to extended scope** |
+| API | **No authentication or roles** (D7) — out of scope for the prototype, listed as a limitation |
+| Dashboard | Five pages (Live, Predictions, Alerts, History, Event & venue), no login ([15 §7](15_FRONTEND_SPECIFICATION.md)) |
+| Extended (§3.2) | LSTM, GNN (A5), density-map counter, RTSP and homography remain extensions with the start conditions in `WORKFLOW.md`; none has been started |
+| Out of scope (§3.3) | Adds: authentication and role-based access, own video recordings, the formal usability study |
+
+### 7.3 Assumptions and constraints
+
+| Item | Status |
+|---|---|
+| AS4 (GPU available) | **False.** No NVIDIA GPU; CV runs offline on the CPU and the demo replays stored observations |
+| AS5 (permission to record) | **Not pursued** (D6). Real data is limited to public datasets, used for CV evaluation only |
+| AS1–AS3, AS6 | Unchanged; AS1 and AS6 are satisfied by construction in the synthetic venues |
+| Constraints (§5) | One developer, no hard deadline (D5); free/open-source tools only; recorded or simulated footage only; modular monolith |
+| Deliverables (§6) | Unchanged; the "CV worker" is the CLI `tools.vision.run_camera` |
+
+## 8. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 0.2 | 2026-11-23 | §7 solo scope added (WORKFLOW 0.3.1, 9.4 audit) |
+| 0.1 | — | Design baseline (team plan) |

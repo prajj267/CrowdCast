@@ -14,7 +14,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 
 | Phase | Name | Target week | Est. days | Milestone | Status |
 |---|---|---|---|---|---|
-| 0 | Decisions, approvals, scope update | 0 | 2 | MS0 | Not started |
+| 0 | Decisions, approvals, scope update | 0 | 2 | MS0 | In progress (0.1.1, 0.3.x done; supervisor sign-off and dataset licences open) |
 | 1 | Foundations (repo, env, DB) | 1 | 3 | MS1 | Done (MS1) |
 | 2 | Venue graph and configuration | 1–2 | 3 | — | Done |
 | 3 | CROWDSIM v1 and ingestion | 2 | 5 | — | Done |
@@ -23,11 +23,11 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Done (MS3) |
 | 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | Done (MS4) |
 | 8 | Dashboard completion (React) | 8–9 | 6 | — | Done |
-| 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | In progress (9.1–9.3 done; 9.4 audit started) |
+| 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | In progress (9.1–9.4 done; report and demo next) |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 7 experiments done (7.3, 7.4); reporting (7.5) and doc work paused at the user's request
-**Next task:** Phase 9 report and demo (Phase 7 complete); doc edits waiting in worktree `../crowdcast-docs` (branch `docs-0.3`)
+**Current focus:** Phase 9: report (9.5) and demo (9.6)
+**Next task:** 9.5 report (outline first, results only from doc 16 §9 / EXPERIMENT_LOG); then 9.6 demo from a fresh clone
 
 ---
 
@@ -89,7 +89,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 ## Phase 0 — Decisions, approvals, scope update (MS0)
 
 ### 0.1 Decisions
-- [ ] 0.1.1 Fill decisions D1–D8 in the Decision log
+- [x] 0.1.1 Fill decisions D1–D8 in the Decision log
 - [ ] 0.1.2 Get supervisor sign-off on the solo scope, the dashboard choice and the licence (D1, D2, D7)
 
 ### 0.2 Approvals and data (slow; start early)
@@ -97,10 +97,10 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [ ] 0.2.2 Read and record the licence terms of Mall, ShanghaiTech Part B and MOT20; change [K] tags to [V] in [12 §2](DOCUMENTATION/12_DATASET_AND_DATA_COLLECTION.md) where confirmed
 
 ### 0.3 Bring the documentation in line with the solo scope (R16)
-- [ ] 0.3.1 [02 Objectives and Scope](DOCUMENTATION/02_OBJECTIVES_AND_SCOPE.md): move LSTM, auth/RBAC and the usability test to extended or out of scope
-- [ ] 0.3.2 [21 Roadmap](DOCUMENTATION/21_DEVELOPMENT_ROADMAP.md) and [milestones.md](PROJECT_MANAGEMENT/milestones.md): point to this file
-- [ ] 0.3.3 [team_responsibilities.md](PROJECT_MANAGEMENT/team_responsibilities.md): one-person note; [risk_register.md](PROJECT_MANAGEMENT/risk_register.md): R6 has occurred, R9 changes to "single developer unavailable"
-- [ ] 0.3.4 [INDEX §7.2](DOCUMENTATION/INDEX.md): record answers to the open team decisions
+- [x] 0.3.1 [02 Objectives and Scope](DOCUMENTATION/02_OBJECTIVES_AND_SCOPE.md): move LSTM, auth/RBAC and the usability test to extended or out of scope
+- [x] 0.3.2 [21 Roadmap](DOCUMENTATION/21_DEVELOPMENT_ROADMAP.md) and [milestones.md](PROJECT_MANAGEMENT/milestones.md): point to this file
+- [x] 0.3.3 [team_responsibilities.md](PROJECT_MANAGEMENT/team_responsibilities.md): one-person note; [risk_register.md](PROJECT_MANAGEMENT/risk_register.md): R6 has occurred, R9 changes to "single developer unavailable"
+- [x] 0.3.4 [INDEX §7.2](DOCUMENTATION/INDEX.md): record answers to the open team decisions
 
 **Exit:** D1–D8 filled, ethics application submitted, documents state the solo scope.
 
@@ -307,7 +307,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 9.1 Scripted end-to-end smoke test: fresh database → load venue → replay event → predictions → alerts
 - [x] 9.2 Timing check: one prediction cycle fits the budget in [07 §5](DOCUMENTATION/07_SYSTEM_ARCHITECTURE.md)
 - [x] 9.3 Privacy check: no footage, frames or personal data in git history; retention rules applied
-- [ ] 9.4 Documentation consistency audit: docs match the code (R16); results inserted only from logged runs
+- [x] 9.4 Documentation consistency audit: docs match the code (R16); results inserted only from logged runs
 - [ ] 9.5 Write the report, with limitations: solo scope, CPU only, no authentication, no own real-world recordings (forecasting evidence is synthetic), synthetic-to-real gap
 - [ ] 9.6 Demo script, rehearsal, recorded demo video; run from a fresh clone following [18 §5](DOCUMENTATION/18_DEPLOYMENT_PLAN.md)
 
@@ -342,6 +342,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-24 | 9.4 (closed), 0.1.1, 0.3.1–0.3.4 | Doc edits from the `docs-0.3` worktree applied to main (02 v0.2 §7, 21 v0.2, INDEX v0.2 with §7.2 answers, milestones, team_responsibilities, risk register solo status, experimental_design v0.1.1 §12) and brought up to date with the final runs (MS4 met, R13 measured). New: 06 v0.2 §5 requirement-by-requirement solo status (F-0.3 named 06 but it had not been edited). Stale wording fixed: research_hypotheses status note (H1–H4, H6, H7 tested on SYNTHETIC; H5 not tested; REAL parts untestable), PROJECT_OVERVIEW status/team, INDEX §7.1, 02 §6. AUDIT_9_4 closed: all findings fixed, logged or code. Relative links in the edited docs checked (0 broken). 0.1.1 ticked (D1–D8 all filled) | Docs only; no code changed since the last full check. 0.1.2, 0.2.x (supervisor, dataset licences) still open | 9.5 report |
 | 2026-11-23 | 7.5.2 | Traceability check: scripted scan of DOCUMENTATION, RESEARCH, learning, README, PROJECT_OVERVIEW and ARCHITECTURE for result-like numbers absent from EXPERIMENT_LOG (decimals on metric lines: 13 hits, all spec constants, section numbers or rounded logged values; integer/percent results reviewed by hand: plan text only); every commit in EXPERIMENT_LOG is on main (except `18f6812`, explained in its row: pre-rewrite hash) and every config it names is tracked. **Fixed:** doc 09 §12 (and AUDIT F-09) wrongly said only YOLOX-s tiled was ever evaluated — the count runs compared s tiled, s untiled and nano tiled; doc 15 contrast ratios (2.88 / 3.28 / ≥ 3.4 : 1) had no code behind them → `frontend/src/theme/tokens.test.ts` recomputes them from `tokens.css` (Vitest now processes that CSS file: `test.css.include`). Checks: see notes | Vitest fails every suite when run from a lower-case `c:\` path (two module copies); gotcha added to CLAUDE.md. Doc 16 §9 is generated, so it is traceable by construction | Phase 9 |
 | 2026-11-23 | 7.5.1 | `backend/tools/report.py` (5 tests): renders doc 16 §9 from pipeline output only — test-split runs from `runs/ablation/finals.json` (data, MAE with bootstrap CIs, H1–H4/H6 with seed counts, H7 coverage, F1, alert replay) and REAL CV runs from `runs/cv_eval/` (counts by band, MOT20 flows), SYNTHETIC and REAL in separate tables; replaces the GENERATED block in doc 16 (v0.2). Generated at `08a2c64` → `runs/report/20261123T181825Z/`. Stopped partial run `runs/ablation/20261122T233220Z` deleted (user). Checks: ruff, mypy clean; pytest 250 passed (75 db tests deselected, Postgres stopped) | RF, LSTM, GNN and REAL forecasting rows read "not run" / "not measured" | 7.5.2 traceability |
 | 2026-11-23 | 7.3.4, 7.3.5, 7.4.1, 7.4.2 | 12 one-shot test-split runs on commit eac17e8 (test_in_venue, test_new_venue × SYN-clean, SYN-noisy × seeds 2027/2028/2029, tuned params), each followed by statistics and operational evaluation; all registered in `runs/ablation/finals.json` and logged (4 rows in EXPERIMENT_LOG). Every XGBoost config beats B0 at every horizon (significant, ≥ 5 %); schedule features (H1) practical almost everywhere; H6 ranking holds in all 12 runs | **Negative / mixed results:** neighbour features (H4, A4 vs A4_NONBR) never reach the 5 % practical threshold (≤ 3.4 %), and on the unseen venue A4_NONBR is better at h5. **H7 fails on test_new_venue:** conformal coverage 0.81–0.90 (max 0.895), only 3–5 of 15 cells in 0.75–0.85 (over-coverage); in-venue all in band. In-venue clean alerts: median lead 0 min with more false alarms than B0 | 7.5 reporting when doc work resumes |

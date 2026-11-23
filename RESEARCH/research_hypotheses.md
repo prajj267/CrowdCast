@@ -1,5 +1,7 @@
 # Research Hypotheses
 
+> **Status (2026-11-24).** H1–H4, H6 and H7 have been tested on the **SYNTHETIC** test splits (one-shot final runs, 3 seeds, logged 2026-11-23 in [`EXPERIMENT_LOG.md`](../EXPERIMENT_LOG.md)); the outcomes, negative ones included, are in [16 §9](../DOCUMENTATION/16_MODEL_EVALUATION.md). **H5 is not tested**: the A5 (GNN) extension was not started. The REAL-data parts of H6 and H7 cannot be tested, because there is no REAL forecasting dataset (D6). H4 was tested against A4 without neighbour features (A4_NONBR), as the table allows. The text below is the pre-registered statement, unchanged.
+
 All hypotheses are **untested**. They are stated so that they can be rejected. "Improve" means lower per-event MAE on the test events, tested with a one-sided Wilcoxon signed-rank test over test events at α = 0.05 with Holm correction across horizons (details in [experimental_design.md](experimental_design.md)). An effect is considered *practically meaningful* if the median relative MAE reduction is ≥ 5 % — a threshold chosen in advance to avoid declaring trivially small gains.
 
 | ID | Hypothesis (H₁) | Null (H₀) | Test | Notes / why we expect it |

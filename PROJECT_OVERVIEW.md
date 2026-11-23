@@ -4,8 +4,8 @@
 |---|---|
 | Project | CROWDCAST — Event Crowd Congestion Prediction System |
 | Type | College CSE project with a research component |
-| Team / duration | 3–4 students, 6–8 weeks to a working prototype |
-| Status | Design baseline — not implemented; no results yet |
+| Team / duration | Built by **one developer** on a CPU-only laptop, self-paced (solo scope in [`WORKFLOW.md`](WORKFLOW.md)); the original plan was 3–4 students, 6–8 weeks |
+| Status | Implemented in the solo scope (Phases 1–8 done; Phase 9 report and demo in progress). Results only in [`EXPERIMENT_LOG.md`](EXPERIMENT_LOG.md) and [16 §9](DOCUMENTATION/16_MODEL_EVALUATION.md): forecasting evidence is SYNTHETIC; REAL public data is used for CV evaluation only |
 
 ## The problem in one paragraph
 
