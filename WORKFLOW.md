@@ -27,7 +27,7 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 7 experiments done (7.3, 7.4); reporting (7.5) and doc work paused at the user's request
-**Next task:** 7.5 reporting (fill doc 16 tables from the logged test-split runs) when the user resumes doc work; doc edits waiting in worktree `../crowdcast-docs` (branch `docs-0.3`)
+**Next task:** 7.5.2 traceability check (every number in docs/report → EXPERIMENT_LOG row + committed config), then Phase 9 report; doc edits waiting in worktree `../crowdcast-docs` (branch `docs-0.3`)
 
 ---
 
@@ -282,7 +282,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 7.4.2 Replay test events through M6 + M7: warning lead time, false-alarm rate, missed episodes (O6, T4.7)
 
 ### 7.5 Reporting
-- [ ] 7.5.1 Fill the tables in [16](DOCUMENTATION/16_MODEL_EVALUATION.md) from pipeline output only, with SYNTHETIC and REAL kept separate
+- [x] 7.5.1 Fill the tables in [16](DOCUMENTATION/16_MODEL_EVALUATION.md) from pipeline output only, with SYNTHETIC and REAL kept separate
 - [ ] 7.5.2 Every number traceable to an `EXPERIMENT_LOG.md` entry and a committed config
 
 **Exit (MS4):** all evaluation tables filled from logged runs; hypotheses accepted or rejected with statistics; negative results reported.
@@ -342,6 +342,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-23 | 7.5.1 | `backend/tools/report.py` (5 tests): renders doc 16 §9 from pipeline output only — test-split runs from `runs/ablation/finals.json` (data, MAE with bootstrap CIs, H1–H4/H6 with seed counts, H7 coverage, F1, alert replay) and REAL CV runs from `runs/cv_eval/` (counts by band, MOT20 flows), SYNTHETIC and REAL in separate tables; replaces the GENERATED block in doc 16 (v0.2). Generated at `08a2c64` → `runs/report/20261123T181825Z/`. Stopped partial run `runs/ablation/20261122T233220Z` deleted (user). Checks: ruff, mypy clean; pytest 250 passed (75 db tests deselected, Postgres stopped) | RF, LSTM, GNN and REAL forecasting rows read "not run" / "not measured" | 7.5.2 traceability |
 | 2026-11-23 | 7.3.4, 7.3.5, 7.4.1, 7.4.2 | 12 one-shot test-split runs on commit eac17e8 (test_in_venue, test_new_venue × SYN-clean, SYN-noisy × seeds 2027/2028/2029, tuned params), each followed by statistics and operational evaluation; all registered in `runs/ablation/finals.json` and logged (4 rows in EXPERIMENT_LOG). Every XGBoost config beats B0 at every horizon (significant, ≥ 5 %); schedule features (H1) practical almost everywhere; H6 ranking holds in all 12 runs | **Negative / mixed results:** neighbour features (H4, A4 vs A4_NONBR) never reach the 5 % practical threshold (≤ 3.4 %), and on the unseen venue A4_NONBR is better at h5. **H7 fails on test_new_venue:** conformal coverage 0.81–0.90 (max 0.895), only 3–5 of 15 cells in 0.75–0.85 (over-coverage); in-venue all in band. In-venue clean alerts: median lead 0 min with more false alarms than B0 | 7.5 reporting when doc work resumes |
 | 2026-11-23 | 7.3.1, 7.3.3 (runs), 7.3.5 / 7.4 (applied to validation) | Tuned validation ablations SYN-clean (ablation-20261122T234035Z) and SYN-noisy (ablation-20261123T000619Z) on commit e9d92fe, with statistics and operational outputs; logged. Conformal coverage within 0.75–0.85 for every model and horizon (7.3.3 ticked). 7.3.1 ticked (all configs and baselines on both datasets) | Validation only. Neighbour-feature gain below the 5 % practical threshold on both datasets and not significant on SYN-noisy. A stopped partial run (20261122T233220Z) is not a result. Doc work paused at the user's request (uncommitted edits in worktree `../crowdcast-docs`, branch `docs-0.3`) | 7.3.4 test-split runs after user approval |
 | 2026-11-23 | 7.3.2 (run), 9.4 (cont.) | SYN-noisy tuning finished (15 cells, 300 trials, 13.7 h; logged as tuning-20261122T090809Z); parameters committed in `configs/tuning/`. 7.3.2 ticked (both datasets tuned). 9.4: docs 08, 17 (test-case traceability), 19 (control-by-control status), 13 (camera tables never written) amended; camera YAML validator now rejects two counting lines on one connection (doc 09 §8; doc 12 §6.3 v0.4.1; 1 new test case) | CV scores are training-event scores, not results. Open audit findings: 0.3.x, RESEARCH | Tuned validation ablations clean + noisy (`--params`), then stats + operational |
