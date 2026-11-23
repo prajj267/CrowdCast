@@ -16,5 +16,7 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["./src/test/setup.ts"],
+    // tokens.css is read as text by the contrast test (otherwise Vitest stubs CSS as "").
+    css: { include: [/tokens\.css/] },
   },
 });

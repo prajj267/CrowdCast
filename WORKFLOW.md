@@ -21,13 +21,13 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 4 | Vertical slice (baselines, risk, React scaffold + live page) | 3 | 7 | **MS2** | Done (MS2) |
 | 5 | Forecasting core (features, XGBoost) | 4 | 5 | — | Done |
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Done (MS3) |
-| 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | In progress |
+| 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | Done (MS4) |
 | 8 | Dashboard completion (React) | 8–9 | 6 | — | Done |
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | In progress (9.1–9.3 done; 9.4 audit started) |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 7 experiments done (7.3, 7.4); reporting (7.5) and doc work paused at the user's request
-**Next task:** 7.5.2 traceability check (every number in docs/report → EXPERIMENT_LOG row + committed config), then Phase 9 report; doc edits waiting in worktree `../crowdcast-docs` (branch `docs-0.3`)
+**Next task:** Phase 9 report and demo (Phase 7 complete); doc edits waiting in worktree `../crowdcast-docs` (branch `docs-0.3`)
 
 ---
 
@@ -283,7 +283,7 @@ Record every departure from the documented plan (method, volume, threshold, tria
 
 ### 7.5 Reporting
 - [x] 7.5.1 Fill the tables in [16](DOCUMENTATION/16_MODEL_EVALUATION.md) from pipeline output only, with SYNTHETIC and REAL kept separate
-- [ ] 7.5.2 Every number traceable to an `EXPERIMENT_LOG.md` entry and a committed config
+- [x] 7.5.2 Every number traceable to an `EXPERIMENT_LOG.md` entry and a committed config
 
 **Exit (MS4):** all evaluation tables filled from logged runs; hypotheses accepted or rejected with statistics; negative results reported.
 
@@ -342,6 +342,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-23 | 7.5.2 | Traceability check: scripted scan of DOCUMENTATION, RESEARCH, learning, README, PROJECT_OVERVIEW and ARCHITECTURE for result-like numbers absent from EXPERIMENT_LOG (decimals on metric lines: 13 hits, all spec constants, section numbers or rounded logged values; integer/percent results reviewed by hand: plan text only); every commit in EXPERIMENT_LOG is on main (except `18f6812`, explained in its row: pre-rewrite hash) and every config it names is tracked. **Fixed:** doc 09 §12 (and AUDIT F-09) wrongly said only YOLOX-s tiled was ever evaluated — the count runs compared s tiled, s untiled and nano tiled; doc 15 contrast ratios (2.88 / 3.28 / ≥ 3.4 : 1) had no code behind them → `frontend/src/theme/tokens.test.ts` recomputes them from `tokens.css` (Vitest now processes that CSS file: `test.css.include`). Checks: see notes | Vitest fails every suite when run from a lower-case `c:\` path (two module copies); gotcha added to CLAUDE.md. Doc 16 §9 is generated, so it is traceable by construction | Phase 9 |
 | 2026-11-23 | 7.5.1 | `backend/tools/report.py` (5 tests): renders doc 16 §9 from pipeline output only — test-split runs from `runs/ablation/finals.json` (data, MAE with bootstrap CIs, H1–H4/H6 with seed counts, H7 coverage, F1, alert replay) and REAL CV runs from `runs/cv_eval/` (counts by band, MOT20 flows), SYNTHETIC and REAL in separate tables; replaces the GENERATED block in doc 16 (v0.2). Generated at `08a2c64` → `runs/report/20261123T181825Z/`. Stopped partial run `runs/ablation/20261122T233220Z` deleted (user). Checks: ruff, mypy clean; pytest 250 passed (75 db tests deselected, Postgres stopped) | RF, LSTM, GNN and REAL forecasting rows read "not run" / "not measured" | 7.5.2 traceability |
 | 2026-11-23 | 7.3.4, 7.3.5, 7.4.1, 7.4.2 | 12 one-shot test-split runs on commit eac17e8 (test_in_venue, test_new_venue × SYN-clean, SYN-noisy × seeds 2027/2028/2029, tuned params), each followed by statistics and operational evaluation; all registered in `runs/ablation/finals.json` and logged (4 rows in EXPERIMENT_LOG). Every XGBoost config beats B0 at every horizon (significant, ≥ 5 %); schedule features (H1) practical almost everywhere; H6 ranking holds in all 12 runs | **Negative / mixed results:** neighbour features (H4, A4 vs A4_NONBR) never reach the 5 % practical threshold (≤ 3.4 %), and on the unseen venue A4_NONBR is better at h5. **H7 fails on test_new_venue:** conformal coverage 0.81–0.90 (max 0.895), only 3–5 of 15 cells in 0.75–0.85 (over-coverage); in-venue all in band. In-venue clean alerts: median lead 0 min with more false alarms than B0 | 7.5 reporting when doc work resumes |
 | 2026-11-23 | 7.3.1, 7.3.3 (runs), 7.3.5 / 7.4 (applied to validation) | Tuned validation ablations SYN-clean (ablation-20261122T234035Z) and SYN-noisy (ablation-20261123T000619Z) on commit e9d92fe, with statistics and operational outputs; logged. Conformal coverage within 0.75–0.85 for every model and horizon (7.3.3 ticked). 7.3.1 ticked (all configs and baselines on both datasets) | Validation only. Neighbour-feature gain below the 5 % practical threshold on both datasets and not significant on SYN-noisy. A stopped partial run (20261122T233220Z) is not a result. Doc work paused at the user's request (uncommitted edits in worktree `../crowdcast-docs`, branch `docs-0.3`) | 7.3.4 test-split runs after user approval |

@@ -130,6 +130,7 @@ Python lives in `backend/` (uv project, uv-managed CPython 3.12; `python-prefere
 Gotchas:
 - Use `127.0.0.1`, not `localhost`, in `DATABASE_URL`: on this machine `localhost` tries IPv6 first and stalls (~8 s or a hang), because Docker publishes Postgres on IPv4 only.
 - Set the session time zone through `connect_args={"options": "-c TimeZone=UTC"}`, never with a `SET` statement before Alembic runs: that opens a transaction Alembic never commits, and the migration silently rolls back.
+- Run Vitest from a path with an upper-case drive letter (`C:\Projects\...`, e.g. PowerShell `Set-Location C:\Projects\crowdcast\frontend`): from `c:\...` every suite fails with "Vitest failed to find the current suite" (two module copies).
 - Tests marked `db` run inside a rolled-back transaction and are skipped (not failed) when Postgres is down.
 
 Commands for the API, CROWDSIM, replay and training are added here when those tasks are built.
