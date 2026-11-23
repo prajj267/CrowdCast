@@ -26,8 +26,8 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | In progress (9.1–9.3 done; 9.4 audit started) |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
-**Current focus:** Phase 7 runs (noisy tuning, then tuned validation and test-split runs); Phase 9 next (Phase 0 still open: doc updates 0.3.x)
-**Next task:** 7.3.4 test-split runs (`--final`, once per final configuration, 3 seeds; needs the user's go-ahead) → stats + operational on them (7.3.5, 7.4) (Phase 7). Meanwhile: 9.4 audit fixes per [DOCUMENTATION/AUDIT_9_4.md](DOCUMENTATION/AUDIT_9_4.md) (README, 18, 07, 09, 15, 17, …)
+**Current focus:** Phase 7 experiments done (7.3, 7.4); reporting (7.5) and doc work paused at the user's request
+**Next task:** 7.5 reporting (fill doc 16 tables from the logged test-split runs) when the user resumes doc work; doc edits waiting in worktree `../crowdcast-docs` (branch `docs-0.3`)
 
 ---
 
@@ -274,12 +274,12 @@ Record every departure from the documented plan (method, volume, threshold, tria
 - [x] 7.3.1 Ablation runner: configs A1–A4 and A4\NBR × horizons 5/15/30 × XGBoost (RF optional); baselines B0–B3 on every dataset
 - [x] 7.3.2 Tuning with GroupKFold by event and Optuna; reduce the trial count if CPU time requires it (Deviation log)
 - [x] 7.3.3 Split-conformal intervals calibrated on validation; coverage (H7)
-- [ ] 7.3.4 Evaluate each test split **once** per final configuration; 3 seeds
-- [ ] 7.3.5 Statistics: one-sided Wilcoxon, Holm correction, bootstrap CIs, post-release stratification (H1–H4, H6)
+- [x] 7.3.4 Evaluate each test split **once** per final configuration; 3 seeds
+- [x] 7.3.5 Statistics: one-sided Wilcoxon, Holm correction, bootstrap CIs, post-release stratification (H1–H4, H6)
 
 ### 7.4 Classification and operational evaluation
-- [ ] 7.4.1 Precision, recall and F1 for HIGH-or-above per horizon (O5)
-- [ ] 7.4.2 Replay test events through M6 + M7: warning lead time, false-alarm rate, missed episodes (O6, T4.7)
+- [x] 7.4.1 Precision, recall and F1 for HIGH-or-above per horizon (O5)
+- [x] 7.4.2 Replay test events through M6 + M7: warning lead time, false-alarm rate, missed episodes (O6, T4.7)
 
 ### 7.5 Reporting
 - [ ] 7.5.1 Fill the tables in [16](DOCUMENTATION/16_MODEL_EVALUATION.md) from pipeline output only, with SYNTHETIC and REAL kept separate
@@ -342,6 +342,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-23 | 7.3.4, 7.3.5, 7.4.1, 7.4.2 | 12 one-shot test-split runs on commit eac17e8 (test_in_venue, test_new_venue × SYN-clean, SYN-noisy × seeds 2027/2028/2029, tuned params), each followed by statistics and operational evaluation; all registered in `runs/ablation/finals.json` and logged (4 rows in EXPERIMENT_LOG). Every XGBoost config beats B0 at every horizon (significant, ≥ 5 %); schedule features (H1) practical almost everywhere; H6 ranking holds in all 12 runs | **Negative / mixed results:** neighbour features (H4, A4 vs A4_NONBR) never reach the 5 % practical threshold (≤ 3.4 %), and on the unseen venue A4_NONBR is better at h5. **H7 fails on test_new_venue:** conformal coverage 0.81–0.90 (max 0.895), only 3–5 of 15 cells in 0.75–0.85 (over-coverage); in-venue all in band. In-venue clean alerts: median lead 0 min with more false alarms than B0 | 7.5 reporting when doc work resumes |
 | 2026-11-23 | 7.3.1, 7.3.3 (runs), 7.3.5 / 7.4 (applied to validation) | Tuned validation ablations SYN-clean (ablation-20261122T234035Z) and SYN-noisy (ablation-20261123T000619Z) on commit e9d92fe, with statistics and operational outputs; logged. Conformal coverage within 0.75–0.85 for every model and horizon (7.3.3 ticked). 7.3.1 ticked (all configs and baselines on both datasets) | Validation only. Neighbour-feature gain below the 5 % practical threshold on both datasets and not significant on SYN-noisy. A stopped partial run (20261122T233220Z) is not a result. Doc work paused at the user's request (uncommitted edits in worktree `../crowdcast-docs`, branch `docs-0.3`) | 7.3.4 test-split runs after user approval |
 | 2026-11-23 | 7.3.2 (run), 9.4 (cont.) | SYN-noisy tuning finished (15 cells, 300 trials, 13.7 h; logged as tuning-20261122T090809Z); parameters committed in `configs/tuning/`. 7.3.2 ticked (both datasets tuned). 9.4: docs 08, 17 (test-case traceability), 19 (control-by-control status), 13 (camera tables never written) amended; camera YAML validator now rejects two counting lines on one connection (doc 09 §8; doc 12 §6.3 v0.4.1; 1 new test case) | CV scores are training-event scores, not results. Open audit findings: 0.3.x, RESEARCH | Tuned validation ablations clean + noisy (`--params`), then stats + operational |
 | 2026-11-23 | 9.4 (cont.) | **CI** `.github/workflows/ci.yml`: backend (ruff, mypy, Alembic + full pytest against a PostgreSQL 16 service, API-client drift check), frontend (generated-types drift, format, lint, build, Vitest), privacy scan over the full history. **Module boundaries:** `aggregation/interfaces.py` added; `api` and `vision` now import through interfaces; `tests/test_module_boundaries.py` (AST) enforces it (fails on the old code with 3 violations). **Settings:** unused `PREDICTION_OFFSET_S` and `MODEL_DIR` removed (`config.py`, `.env.example`, tests). API client regenerated (it lacked `/api/models*` since 5.3.3). Flaky `test_status_planned_live_ended` fixed (no ORDER BY). Docs: README rewritten; 07 v0.2 (§9 solo implementation); 18 v0.2 rewritten (fresh-clone procedure); system / deployment / data-flow diagrams redrawn; 09 v0.2 (§12 implementation: YOLOX + tiling, speed not built, PARTIAL flag, public-data validation; only YOLOX-s tiled was ever evaluated); 15 v0.2 (§7 five pages, what is not built). Checks: `scripts/check.ps1` passed (ruff, mypy, pytest, 45 frontend tests); full backend suite after the flaky-test fix: 319 passed | CI not yet run on GitHub (needs a push). Mermaid diagrams not rendered locally (mermaid-cli not installed). Open audit findings: 08, 13 (camera tables), 17, 19, 0.3.x, RESEARCH | 9.4: docs 17, 08, 19, 13, then 0.3.x |
