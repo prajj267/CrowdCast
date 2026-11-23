@@ -82,11 +82,12 @@ def test_per_event_metrics(run: tuple[History, pd.DataFrame, np.ndarray]) -> Non
 
 def test_test_split_is_evaluated_only_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ablation, "FINALS", tmp_path / "finals.json")
-    ablation.check_final("test_in_venue", ["xgb_A4"], 2027)  # nothing registered yet
-    ablation.register_final("test_in_venue", ["xgb_A4"], 2027, "run1")
+    ablation.check_final("test_in_venue/clean", ["xgb_A4"], 2027)  # nothing registered yet
+    ablation.register_final("test_in_venue/clean", ["xgb_A4"], 2027, "run1")
     with pytest.raises(SystemExit, match="evaluated ONCE"):
-        ablation.check_final("test_in_venue", ["xgb_A1", "xgb_A4"], 2027)
-    ablation.check_final("test_in_venue", ["xgb_A4"], 7)  # another seed is a new configuration
+        ablation.check_final("test_in_venue/clean", ["xgb_A1", "xgb_A4"], 2027)
+    ablation.check_final("test_in_venue/clean", ["xgb_A4"], 7)  # another seed: new configuration
+    ablation.check_final("test_in_venue/noisy", ["xgb_A4"], 2027)  # other dataset: new config
     assert json.loads((tmp_path / "finals.json").read_text())[0]["run"] == "run1"
 
 

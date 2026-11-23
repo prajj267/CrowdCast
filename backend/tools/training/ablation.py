@@ -315,7 +315,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     models = [f"xgb_{fs.value}" for fs in args.feature_sets]
     if args.split in TEST_SPLITS:
-        check_final(args.split, models, args.seed)
+        check_final(f"{args.split}/{args.data}", models, args.seed)
 
     splits = load_splits()
     train_ids, val_ids, target_ids = splits["train"], splits["validation"], splits[args.split]
@@ -398,7 +398,7 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
     if args.split in TEST_SPLITS:
-        register_final(args.split, models, args.seed, run)
+        register_final(f"{args.split}/{args.data}", models, args.seed, run)
     print(f"written {out}")
     return 0
 
