@@ -154,6 +154,18 @@ def test_replace_block_only_touches_the_generated_part() -> None:
         report.replace_block("no markers", "x")
 
 
+def test_section_number_follows_the_heading_above_the_block(finals_path: Path) -> None:
+    doc = (
+        f"## 6. Methods\n\n## 7. Results\n\n{report.BEGIN}\nold\n{report.END}\n\n## 8. Discussion\n"
+    )
+    assert report.section_number(doc) == "7"
+    text = report.render(report.load_finals(finals_path), [], [], "abcdef0", "7")
+    assert "### 7.1 Forecasting data" in text and "### 7.8 Line-crossing" in text
+    assert "### 9." not in text
+    with pytest.raises(SystemExit, match="heading"):
+        report.section_number(f"no heading\n{report.BEGIN}\n{report.END}\n")
+
+
 def test_cv_sections_read_summaries(tmp_path: Path) -> None:
     run = tmp_path / "20260101T000000Z"
     run.mkdir()

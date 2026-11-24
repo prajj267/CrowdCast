@@ -23,11 +23,11 @@ Update the Status column as you go: `Not started` / `In progress` / `Done` / `Bl
 | 6 | CV pipeline on CPU | 5 | 6 | **MS3** | Done (MS3) |
 | 7 | Data, experiments, evaluation | 6–7 | 9 | **MS4** | Done (MS4) |
 | 8 | Dashboard completion (React) | 8–9 | 6 | — | Done |
-| 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | In progress (9.1–9.4 done; report and demo next) |
+| 9 | Hardening, report, demo | 9–10 | 4 | **MS5** | In progress (9.1–9.4 done; 9.5 report skeleton) |
 | X | Extensions (gated) | buffer | — | MS6 | Not started |
 
 **Current focus:** Phase 9: report (9.5) and demo (9.6)
-**Next task:** 9.5 report (outline first, results only from doc 16 §9 / EXPERIMENT_LOG); then 9.6 demo from a fresh clone
+**Next task:** 9.5 report: commit the skeleton, generate §7 into `reports/report.md`, then write §1–§6 (methods) and §8–§11; then 9.6 demo from a fresh clone
 
 ---
 
@@ -342,6 +342,7 @@ Newest first. One line per working session.
 
 | Date | Tasks worked | Done | Notes / blockers | Next |
 |---|---|---|---|---|
+| 2026-11-24 | 9.5 (started) | Report format decided: Markdown in the repo, `reports/report.md` (converted to PDF/Word at the end). Skeleton with 11 chapters + references + reproducibility appendix, each with its source documents; §7 Results is a GENERATED block. `tools.report`: `--doc` repeatable, sub-section numbers follow the `## N.` heading above the markers (doc 16 stays 9.x, the report gets 7.x); 1 new test. Checks: ruff, mypy (135 files), pytest 251 passed / 75 skipped (Postgres down), frontend 49/49 | The generator refuses a dirty tree, so §7 is filled after the skeleton is committed | 9.5: generate §7, write §5 Methods |
 | 2026-11-24 | 9.4 (closed), 0.1.1, 0.3.1–0.3.4 | Doc edits from the `docs-0.3` worktree applied to main (02 v0.2 §7, 21 v0.2, INDEX v0.2 with §7.2 answers, milestones, team_responsibilities, risk register solo status, experimental_design v0.1.1 §12) and brought up to date with the final runs (MS4 met, R13 measured). New: 06 v0.2 §5 requirement-by-requirement solo status (F-0.3 named 06 but it had not been edited). Stale wording fixed: research_hypotheses status note (H1–H4, H6, H7 tested on SYNTHETIC; H5 not tested; REAL parts untestable), PROJECT_OVERVIEW status/team, INDEX §7.1, 02 §6. AUDIT_9_4 closed: all findings fixed, logged or code. Relative links in the edited docs checked (0 broken). 0.1.1 ticked (D1–D8 all filled) | Docs only; no code changed since the last full check. 0.1.2, 0.2.x (supervisor, dataset licences) still open | 9.5 report |
 | 2026-11-23 | 7.5.2 | Traceability check: scripted scan of DOCUMENTATION, RESEARCH, learning, README, PROJECT_OVERVIEW and ARCHITECTURE for result-like numbers absent from EXPERIMENT_LOG (decimals on metric lines: 13 hits, all spec constants, section numbers or rounded logged values; integer/percent results reviewed by hand: plan text only); every commit in EXPERIMENT_LOG is on main (except `18f6812`, explained in its row: pre-rewrite hash) and every config it names is tracked. **Fixed:** doc 09 §12 (and AUDIT F-09) wrongly said only YOLOX-s tiled was ever evaluated — the count runs compared s tiled, s untiled and nano tiled; doc 15 contrast ratios (2.88 / 3.28 / ≥ 3.4 : 1) had no code behind them → `frontend/src/theme/tokens.test.ts` recomputes them from `tokens.css` (Vitest now processes that CSS file: `test.css.include`). Checks: see notes | Vitest fails every suite when run from a lower-case `c:\` path (two module copies); gotcha added to CLAUDE.md. Doc 16 §9 is generated, so it is traceable by construction | Phase 9 |
 | 2026-11-23 | 7.5.1 | `backend/tools/report.py` (5 tests): renders doc 16 §9 from pipeline output only — test-split runs from `runs/ablation/finals.json` (data, MAE with bootstrap CIs, H1–H4/H6 with seed counts, H7 coverage, F1, alert replay) and REAL CV runs from `runs/cv_eval/` (counts by band, MOT20 flows), SYNTHETIC and REAL in separate tables; replaces the GENERATED block in doc 16 (v0.2). Generated at `08a2c64` → `runs/report/20261123T181825Z/`. Stopped partial run `runs/ablation/20261122T233220Z` deleted (user). Checks: ruff, mypy clean; pytest 250 passed (75 db tests deselected, Postgres stopped) | RF, LSTM, GNN and REAL forecasting rows read "not run" / "not measured" | 7.5.2 traceability |
